@@ -10,17 +10,22 @@
 ## Fase 0 — Cimientos del proyecto
 
 - [ ] **F0-01** Instalar devkitPro/devkitARM en el entorno Windows (`devkitPro pacman`, grupo `gba-dev`).
+  - **Bloqueada para el agente:** el instalador oficial es un asistente gráfico interactivo (requiere UAC/clics) y el sitio devkitpro.org bloquea peticiones scripted (Cloudflare 403); no se puede automatizar desde este entorno no interactivo. **Pendiente de que la haga una persona.** Pasos:
+    1. Descargar `devkitProUpdater.exe` desde <https://github.com/devkitPro/installer/releases> (releases de GitHub, sí accesible).
+    2. Ejecutarlo y, en la selección de componentes, marcar el grupo **GBA Development** (instala devkitARM + libgba + herramientas como `gbafix`).
+    3. Confirmar que queda una variable de entorno `DEVKITPRO` (típicamente `C:\devkitPro`) y `DEVKITARM=$DEVKITPRO/devkitARM` — abrir una terminal nueva y correr `echo $DEVKITARM` (MSYS2/Git Bash) o `echo %DEVKITARM%` (cmd) para confirmarlo.
 - [ ] **F0-02** Obtener libtonc (vía pacman de devkitPro o como submódulo en `third_party/libtonc`).
-- [ ] **F0-03** Inicializar el repositorio git del nuevo proyecto `perseo-gba` (separado o como carpeta dentro de este repo, a decidir).
-- [ ] **F0-04** Crear el esqueleto de carpetas completo de la sección 9 del plan (vacío, solo estructura + `.gitkeep`).
-- [ ] **F0-05** Escribir `Makefile` inicial basado en `gba_rules` de devkitARM (referencia en el plan, sección 9.2).
-- [ ] **F0-06** Escribir `source/main.c` mínimo: inicializa Modo 0, pinta un color sólido de fondo.
-- [ ] **F0-07** Compilar y confirmar que se genera `perseo.gba`.
-- [ ] **F0-08** Validar en mGBA que la ROM arranca y muestra el color.
-- [ ] **F0-09** Validar el mismo build en no$gba.
-- [ ] **F0-10** Implementar lectura básica de `REG_KEYINPUT` en `main.c` (ej. cambiar el color de fondo al presionar A) para confirmar que el input llega.
-- [ ] **F0-11** (Opcional, recomendado) Configurar el build de escritorio SDL2 para `core/`: `platform/sdl/sdl_main.c` con ventana en blanco.
-- [ ] **F0-12** Commit inicial con el esqueleto + "hola mundo" funcionando en ambos targets (GBA y, si aplica, SDL).
+  - **Bloqueada por la misma razón que F0-01.** Una vez instalado devkitPro, correr en su terminal MSYS2: `(dkp-)pacman -S libtonc` (o clonar <https://github.com/devkitPro/libtonc> dentro de `third_party/libtonc` si se prefiere vendorizarla en el repo).
+- [x] **F0-03** Inicializar el repositorio git del nuevo proyecto `perseo-gba`. *(Hecho: `perseo-gba/` creado como subcarpeta de este repo de diseño, con su propio `git init` y primer commit.)*
+- [x] **F0-04** Crear el esqueleto de carpetas completo de la sección 9 del plan (vacío, con `.gitkeep`). *(Hecho, ver `perseo-gba/`.)*
+- [x] **F0-05** Escribir `Makefile` inicial basado en `gba_rules` de devkitARM (referencia en el plan, sección 9.2). *(Hecho: `perseo-gba/Makefile`; sin probar porque falta el toolchain de F0-01.)*
+- [x] **F0-06** Escribir `source/main.c` mínimo que pinta un color sólido de fondo. *(Hecho con Modo 3/bitmap por simplicidad — el Modo 0 tiled real del juego se implementa en la Fase 2; ver comentario en el propio archivo.)*
+- [ ] **F0-07** Compilar y confirmar que se genera `perseo.gba`. **Bloqueada por F0-01/F0-02** (necesita `make` con `$DEVKITARM` y libtonc disponibles).
+- [ ] **F0-08** Validar en mGBA que la ROM arranca y muestra el color. **Bloqueada por F0-07.**
+- [ ] **F0-09** Validar el mismo build en no$gba. **Bloqueada por F0-07.**
+- [x] **F0-10** Implementar lectura básica de `REG_KEYINPUT` en `main.c` (cambia el color de fondo al mantener A). *(Hecho en el mismo `main.c`; falta validarlo en emulador, ver F0-08/F0-09.)*
+- [ ] **F0-11** (Opcional, recomendado) Configurar el build de escritorio SDL2 para `core/`: `platform/sdl/sdl_main.c` con ventana en blanco. *(Pospuesto: aún no hay nada en `core/` que iterar con SDL; se retoma al empezar la Fase 1.)*
+- [x] **F0-12** Commit inicial con el esqueleto. *(Hecho; el "hola mundo" está escrito pero no compilado/validado en emulador — queda pendiente cuando se resuelvan F0-01/F0-02/F0-07/F0-08/F0-09.)*
 
 **Criterio de cierre de fase:** ROM arranca en mGBA y no$gba, responde al D-Pad; estructura de carpetas de la sección 9 creada.
 
