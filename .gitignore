@@ -1,0 +1,22 @@
+# Artefactos de compilación
+build/
+*.elf
+*.gba
+*.map
+*.sav
+
+# Salida generada por el pipeline de assets (siempre reproducible desde assets/src/ + tools/)
+assets/gen/*
+!assets/gen/.gitkeep
+!assets/gen/sprites/.gitkeep
+!assets/gen/tiles/.gitkeep
+!assets/gen/soundbank/.gitkeep
+!assets/gen/levels/.gitkeep
+
+# Dependencias de terceros si se manejan por script en vez de submódulo
+third_party/*
+!third_party/.gitkeep
+
+# Sistema
+.DS_Store
+Thumbs.db
