@@ -1,122 +1,112 @@
 #---------------------------------------------------------------------------------
 # Makefile de "Perseo: Sombras de Silencio" (GBA)
-# Basado en la plantilla estándar de devkitARM para GBA.
-# Ver docs/PLAN_MIGRACION_GBA_C.md, sección 9.2.
+#
+# Nota de arquitectura: a diferencia de la plantilla clásica de devkitARM (que
+# recompila recursivamente entrando a build/), este Makefile es de una sola
+# pasada: usa `vpath` para encontrar los .c en source/** y un patrón explícito
+# `$(BUILD)/%.o : %.c` para dejar los objetos en build/. Es más simple de leer
+# y evita un problema reproducido en este entorno de desarrollo concreto donde
+# la auto-invocación recursiva de `make` (el truco `$(MAKE) -C build -f ...`)
+# resuelve mal su propia ruta bajo el MSYS2 embebido de devkitPro cuando se
+# invoca fuera de su terminal MSYS2 dedicada. Ver docs/PLAN_MIGRACION_GBA_C.md.
 #---------------------------------------------------------------------------------
 ifeq ($(strip $(DEVKITARM)),)
-$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
+$(error Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM)
+endif
+ifeq ($(strip $(DEVKITPRO)),)
+$(error Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>devkitPro)
 endif
 
-include $(DEVKITARM)/gba_rules
+include $(DEVKITARM)/base_tools
+
+# base_tools fuerza SHELL := /usr/bin/env bash; ese bash intermedio resetea
+# TMP/TEMP al iniciar (reproducido en este entorno de desarrollo), lo que hace
+# que arm-none-eabi-gcc intente escribir en C:\WINDOWS y falle por permisos.
+# Se revierte a /bin/sh, que no tiene ese problema.
+SHELL := /bin/sh
 
 #---------------------------------------------------------------------------------
 # TARGET   : nombre del binario final (sin extensión)
-# BUILD    : carpeta de artefactos intermedios (objetos, .elf)
-# SOURCES  : carpetas con código fuente C/C++/ASM (una por módulo, ver source/)
-# INCLUDES : carpetas con headers propios
-# DATA     : carpetas con binarios ya generados (assets/gen) que se incluyen como .o
+# BUILD    : carpeta de artefactos intermedios (objetos, .elf, .gba)
+# SOURCES  : carpetas con código fuente C (una por módulo, ver source/)
+# INCLUDES : carpetas con headers propios y de terceros
+# DATA     : carpetas con binarios ya generados (assets/gen) — se suman cuando
+#            el pipeline de assets (docs/PLAN_MIGRACION_GBA_C.md, sección 5)
+#            empiece a producir archivos .bin reales.
 # LIBS     : librerías externas a enlazar
 # LIBDIRS  : dónde buscar esas librerías (headers y .a)
 #---------------------------------------------------------------------------------
-TARGET      :=  perseo
-BUILD       :=  build
-SOURCES     :=  source \
-                source/core \
-                source/core/enemies \
-                source/core/boss \
-                source/core/level \
-                source/platform/gba \
-                source/ui
-INCLUDES    :=  include source
-DATA        :=  assets/gen
-LIBS        :=  -ltonc
-LIBDIRS     :=  $(DEVKITPRO)/libtonc third_party/libtonc
+TARGET      := perseo
+BUILD       := build
+SOURCES     := source \
+               source/core \
+               source/core/enemies \
+               source/core/boss \
+               source/core/level \
+               source/platform/gba \
+               source/ui
+INCLUDES    := include source $(DEVKITPRO)/libtonc/include third_party/libtonc/include
+DATA        := assets/gen
+LIBS        := -ltonc
+LIBDIRS     := $(DEVKITPRO)/libtonc third_party/libtonc
+
+GAME_TITLE  := PERSEO
+GAME_CODE   := APSE
+MAKER_CODE  := 00
 
 #---------------------------------------------------------------------------------
-# opciones de compilación para ambos ARM y THUMB
+# opciones de compilación
 #---------------------------------------------------------------------------------
-ARCH    :=  -mthumb -mthumb-interwork
-
-CFLAGS  :=  -g -Wall -O2\
-            -mcpu=arm7tdmi -mtune=arm7tdmi\
-            $(ARCH)
-
-CFLAGS  +=  $(INCLUDE)
-CXXFLAGS    := $(CFLAGS) -fno-rtti -fno-exceptions
-ASFLAGS :=  -g $(ARCH)
-LDFLAGS =   -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+ARCH     := -mthumb -mthumb-interwork
+CFLAGS   := -g -Wall -O2 -mcpu=arm7tdmi -mtune=arm7tdmi $(ARCH) \
+            $(foreach dir,$(INCLUDES),-I$(dir))
+LDFLAGS  := -g $(ARCH) -specs=gba.specs -Wl,-Map,$(BUILD)/$(TARGET).map
+LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
 #---------------------------------------------------------------------------------
-# lista de directorios de librerías propias del proyecto
+# TMP/TEMP explícitos para el compilador. Sin esto, en algunos entornos Windows
+# arm-none-eabi-gcc intenta escribir sus archivos temporales en C:\WINDOWS y
+# falla por permisos en vez de usar una carpeta propia del proyecto.
 #---------------------------------------------------------------------------------
-LIBDIRS := $(LIBDIRS)
+export TMP  := $(CURDIR)/$(BUILD)/tmp
+export TEMP := $(CURDIR)/$(BUILD)/tmp
 
-#---------------------------------------------------------------------------------
-# no tocar nada debajo de esta línea, es genérico para todos los proyectos devkitARM
-#---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
-#---------------------------------------------------------------------------------
+vpath %.c $(SOURCES)
 
-export OUTPUT   :=  $(CURDIR)/$(BUILD)/$(TARGET)
+CFILES := $(foreach dir,$(SOURCES),$(wildcard $(dir)/*.c))
+OFILES := $(addprefix $(BUILD)/,$(notdir $(CFILES:.c=.o)))
 
-export VPATH    :=  $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-                    $(foreach dir,$(DATA),$(CURDIR)/$(dir))
+.PHONY: all clean pregen run
 
-export DEPSDIR  :=  $(CURDIR)/$(BUILD)
+all: $(BUILD)/$(TARGET).gba
 
-CFILES      :=  $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES    :=  $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-SFILES      :=  $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-BINFILES    :=  $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.bin)))
-
-#---------------------------------------------------------------------------------
-export LD   :=  $(CC)
-#---------------------------------------------------------------------------------
-
-export OFILES   :=  $(BINFILES:.bin=.o) $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
-
-export INCLUDE  :=  $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-                    $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-                    -I$(CURDIR)/$(BUILD)
-
-export LIBPATHS :=  $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
-
-.PHONY: $(BUILD) clean pregen
-
-#---------------------------------------------------------------------------------
 $(BUILD):
-	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+	mkdir -p $(BUILD) $(BUILD)/tmp
+
+$(BUILD)/%.o: %.c | $(BUILD)
+	$(SILENTMSG) $(notdir $<)
+	$(SILENTCMD)$(CC) $(CFLAGS) -MMD -MP -MF $(BUILD)/$*.d -c $< -o $@
+
+$(BUILD)/$(TARGET).elf: $(OFILES)
+	$(SILENTMSG) linking $(notdir $@)
+	$(SILENTCMD)$(CC) $(LDFLAGS) $(OFILES) $(LIBPATHS) $(LIBS) -o $@
+
+$(BUILD)/$(TARGET).gba: $(BUILD)/$(TARGET).elf
+	$(SILENTCMD)$(OBJCOPY) -O binary $< $@
+	@echo built ... $(notdir $@)
+	$(SILENTCMD)gbafix $@ -t$(GAME_TITLE) -c$(GAME_CODE) -m$(MAKER_CODE)
 
 #---------------------------------------------------------------------------------
 # pregen: genera source/core/level/*.h y assets/gen/** a partir de assets/src/
 # y de los scripts de tools/, ANTES de compilar. Ver docs/PLAN_MIGRACION_GBA_C.md
-# sección 5 (pipeline de datos y assets).
+# sección 5 (pipeline de datos y assets). Vacío por ahora: se llena a medida que
+# existan esos scripts (Fase 3 del checklist).
 #---------------------------------------------------------------------------------
 pregen:
-	python3 tools/spritegen/ascii_to_png.py assets/src/sprites/
-	python3 tools/levelgen/levelgen.py assets/src/levels/ source/core/level/
-	# grit sobre assets/src/sprites/**/*.png y assets/src/tiles/**/*.png -> assets/gen/
-	# (se añaden aquí las invocaciones concretas de grit a medida que existan los .grit)
+	@echo "(pendiente: tools/spritegen y tools/levelgen, ver Fase 3 del checklist)"
 
-#---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).gba
+	@rm -rf $(BUILD)
 
-#---------------------------------------------------------------------------------
-else
-
-DEPENDS :=  $(OFILES:.o=.d)
-
-#---------------------------------------------------------------------------------
-# main targets
-#---------------------------------------------------------------------------------
-$(OUTPUT).gba   :   $(OUTPUT).elf
-$(OUTPUT).elf   :   $(OFILES)
-
--include $(DEPENDS)
-
-#---------------------------------------------------------------------------------------
-endif
-#---------------------------------------------------------------------------------------
+-include $(OFILES:.o=.d)
