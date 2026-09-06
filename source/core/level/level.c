@@ -76,3 +76,45 @@ const Level *level_get_test_room(void) {
     s_test_room_ready = true;
     return &s_test_room;
 }
+
+/* ---------- Sala de prueba de la Fase 2 (scroll) ----------
+   Deliberadamente más ancha que un screenblock de hardware (32 tiles):
+   el objetivo de esta sala no es probar movimiento (ya lo hace
+   level_get_test_room()) sino el MECANISMO de scroll de "mapa grande"
+   (docs/PLAN_MIGRACION_GBA_C.md, Fase 2) — que la cámara pueda recorrer
+   un nivel mucho más grande que el buffer circular de 32x32 tiles sin
+   que aparezcan tiles corruptos o sin sincronizar. 100x20 tiles
+   (800x160 px) con una plataforma "hito" cada 10 columnas, alternando
+   de altura, para que el scroll sea visualmente obvio en el emulador. */
+#define SCROLL_ROOM_W 100
+#define SCROLL_ROOM_H 20
+
+static uint8_t s_scroll_room_tiles[SCROLL_ROOM_W * SCROLL_ROOM_H];
+static Level   s_scroll_room;
+static bool    s_scroll_room_ready = false;
+
+const Level *level_get_scroll_test_room(void) {
+    if (s_scroll_room_ready) return &s_scroll_room;
+
+    carve(s_scroll_room_tiles, SCROLL_ROOM_W, 0, 0, SCROLL_ROOM_W - 1, SCROLL_ROOM_H - 1, TILE_EMPTY);
+    carve(s_scroll_room_tiles, SCROLL_ROOM_W, 0, 0, 0, SCROLL_ROOM_H - 1, TILE_BRICK);
+    carve(s_scroll_room_tiles, SCROLL_ROOM_W, SCROLL_ROOM_W - 1, 0, SCROLL_ROOM_W - 1, SCROLL_ROOM_H - 1, TILE_BRICK);
+    carve(s_scroll_room_tiles, SCROLL_ROOM_W, 1, SCROLL_ROOM_H - 3, SCROLL_ROOM_W - 2, SCROLL_ROOM_H - 1, TILE_BRICK);
+
+    /* Plataformas "hito" cada 10 columnas, alternando entre una fila
+       alta y una media, para que se note claramente el scroll y de
+       paso siga sirviendo para probar el salto a lo largo de todo el
+       recorrido. */
+    for (int16_t x = 10; x + 3 < SCROLL_ROOM_W - 1; x += 10) {
+        int16_t row = ((x / 10) % 2 == 0) ? (SCROLL_ROOM_H - 8) : (SCROLL_ROOM_H - 12);
+        carve(s_scroll_room_tiles, SCROLL_ROOM_W, x, row, x + 3, row, TILE_BRICK);
+    }
+
+    s_scroll_room.w = SCROLL_ROOM_W;
+    s_scroll_room.h = SCROLL_ROOM_H;
+    s_scroll_room.tiles = s_scroll_room_tiles;
+    s_scroll_room.spawn_tx = 3;
+    s_scroll_room.spawn_ty = SCROLL_ROOM_H - 4;
+    s_scroll_room_ready = true;
+    return &s_scroll_room;
+}

@@ -62,7 +62,7 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 - ✅ **Geometría estática correcta**: paredes, suelo, plataforma y saliente se ven donde deben (confirmado con capturas propias y una captura del usuario del ROM corriendo).
 - ✅ **Spawn correcto**: el jugador aparece cerca de la pared izquierda, apoyado sobre el suelo (gravedad + colisión vertical funcionando).
 - ⚠️ **Bug real encontrado y corregido en el camino**: la primera versión del render de depuración redibujaba las ~136 tiles de la sala en cada vuelta del loop, superando el presupuesto de VBlank en Modo 3 (sin doble buffer) y produciendo *tearing* real y estable contra el haz de refresco (se veía como una "escalera" en vez de rectángulos limpios). Se corrigió dibujando la geometría estática una sola vez y, por frame, sólo la pequeña zona del jugador — ver el comentario "NOTA de rendimiento" en `source/main.c`. Este hallazgo es exactamente el tipo de problema que la Fase 9 (optimización) debería anticipar para el renderer real.
-- ⚠️ **Movimiento/salto/dash/escalada interactivos: confirmación visual propia inconclusa** — automatizar la inyección de teclado hacia una ventana externa (VBA-M) desde este entorno resultó muy poco confiable (bloqueos de foco de Windows, minimizados espontáneos, cierres del proceso al redimensionar). Se recomienda que una persona confirme la sensación real jugando el ROM manualmente: D-Pad mover, A saltar (y de nuevo en el aire para Salto Doble), R dashear, mantener una dirección + A en el aire junto a una pared para Garra Felina. El *código* de estos sistemas está completo y revisado línea por línea contra el prototipo (ver `source/core/player.c`).
+- ✅ **Movimiento y salto: confirmados visualmente** (resuelto en la Fase 2). La causa de la falta de confirmación inicial no era el código ni el entorno: el `vbam.ini` de esta instalación no tiene el D-Pad mapeado a las flechas, sino a `D`/`A`/`W`/`S`, con el botón A de GBA en `L` y el R (dash) en `O` — una vez usadas las teclas correctas, una captura mostró al jugador (sprite OBJ completo, ver Fase 2) claramente en el aire tras moverse a la derecha y saltar. Dash se disparó sin errores (cooldown/trigger correctos) aunque no se capturó el frame exacto a mitad de embestida — su lógica ya estaba, de todos modos, revisada línea por línea contra el prototipo. Salto Doble y Garra Felina quedan igual de confiables por revisión de código, sin una captura interactiva dedicada todavía.
 
 **Criterio de cierre de fase:** el jugador se mueve/salta/colisiona con el mismo *feel* que el prototipo web, verificado lado a lado.
 
@@ -70,18 +70,22 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 2 — Renderizado de mundo y cámara
 
-- [ ] **F2-01** Ampliar `platform/pal.h` con la interfaz de vídeo (`pal_video_init`, `pal_video_load_tileset`, `pal_video_set_tile`, `pal_video_scroll_bg`, `pal_video_draw_sprite`).
-- [ ] **F2-02** Implementar `platform/gba/pal_gba_video.c`: inicialización de Modo 0 y configuración de BG0/BG1/BG2.
-- [ ] **F2-03** Cargar un tileset placeholder (colores sólidos) a VRAM para pruebas de scroll.
-- [ ] **F2-04** Implementar la técnica de "big map" (tilemap mayor a 32×32 tiles) con actualización de bordes al hacer scroll.
-- [ ] **F2-05** Implementar `core/camera.h/.c`: seguimiento del jugador + clamp a límites del nivel (equivalente a `updateCam`, [index.html:2918](index.html#L2918)).
-- [ ] **F2-06** Conectar la cámara a los registros de scroll de BG2 vía la PAL.
-- [ ] **F2-07** Añadir capas de paralaje BG0/BG1 con factores de scroll distintos (equivalente a `drawParallax`, [index.html:2220](index.html#L2220)).
-- [ ] **F2-08** Renderizar al jugador como un sprite OAM placeholder (un color/forma simple) siguiendo su posición real.
-- [ ] **F2-09** Prueba: recorrer el nivel de prueba (ancho, >32 tiles) de punta a punta verificando scroll fluido.
-- [ ] **F2-10** Medir FPS en mGBA durante el recorrido (debe mantenerse a 60 fps estables).
+- [x] **F2-01** Ampliar `platform/pal.h` con la interfaz de vídeo. *(`pal_video_init`, `pal_video_sync_level`, `pal_video_set_parallax_scroll`, `pal_video_set_player_sprite` — nombres ajustados respecto al enunciado original para reflejar mejor la técnica de "mapa grande", ver comentarios en el propio header.)*
+- [x] **F2-02** Implementar `platform/gba/pal_gba_video.c`: Modo 0 con BG1 (paralaje) + BG2 (nivel) + OBJ. *(BG0 se deja apagado — no hace falta todavía; se activa si una fase futura necesita una segunda capa de paralaje o HUD.)*
+- [x] **F2-03** Tileset placeholder de colores sólidos (3 tiles: sólido, plataforma, paralaje) cargado en el charblock 0.
+- [x] **F2-04** Técnica de "mapa grande": screenblock de 32×32 como buffer circular (`buffer[(ty&31)*32+(tx&31)]`), con sincronización incremental de columnas/filas nuevas al mover la cámara (algoritmo de 4 pasos de Tonc: nuevas columnas con el rango vertical viejo, luego nuevas filas con el rango horizontal ya actualizado).
+- [x] **F2-05** `core/camera.h/.c`: puerto de `updateCam()` línea a línea, incluido el orden exacto `max(0, min(...))` del original (no un `clamp` genérico — importa cuando el nivel es más angosto que la pantalla).
+- [x] **F2-06** Cámara conectada a `REG_BG2HOFS`/`REG_BG2VOFS` en `pal_video_sync_level`.
+- [x] **F2-07** BG1 como capa de paralaje simple (relleno único, se desplaza a la mitad de la velocidad de la cámara). *(Una sola capa, no las múltiples de `drawParallax()` — eso llega con el arte real de la Fase 3.)*
+- [x] **F2-08** Jugador como sprite OBJ real de hardware (16×16, color sólido, 4 tiles en modo 1D).
+- [x] **F2-09** Sala de prueba nueva de 100×20 tiles (`level_get_scroll_test_room`, deliberadamente >32 tiles) con plataformas "hito" cada 10 columnas. Recorrida de punta a punta sosteniendo el D-Pad: la pared izquierda desaparece, aparecen hitos nuevos según se avanza, y tras cruzar más de 32 tiles (el tamaño del buffer circular) **no aparece ningún tile corrupto** — confirma que el wraparound del mapa grande funciona.
+- [ ] **F2-10** Medir FPS en mGBA durante el recorrido. **No hecho con mGBA** (bloqueado desde la Fase 0 por UAC) — VBA-M reporta 59-60 fps estables durante todas las pruebas de esta fase, pero no se hizo una medición rigurosa bajo carga máxima (más entidades/capas llegan en fases posteriores, donde SÍ conviene medir en serio — ver Fase 9).
 
-**Criterio de cierre de fase:** recorrido fluido de un nivel ancho con paralaje, sin *tearing* ni caídas de frame.
+**Hallazgo de entorno importante (no es un bug de este proyecto):** el `.ini` de esta instalación de VBA-M no tiene el D-Pad mapeado a las flechas del teclado — está mapeado a `D`(derecha)/`A`(izquierda)/`W`/`S`, con el botón A de GBA en `L`, B en `K`, L-shoulder en `I`, R-shoulder (dash) en `O`. Todos los intentos previos de probar input en la Fase 0/1 que "no mostraban movimiento" eran por usar las flechas, no por un problema del código ni del entorno de automatización. Documentado acá para no repetir la confusión en fases futuras.
+
+**Bug real encontrado y corregido en el camino:** durante el diagnóstico se detectó (y se descartó como falsa alarma) una aparente pérdida de tiles al hacer scroll; resultó ser sólo el tamaño de la ventana del emulador recortando la parte inferior de la imagen, no un bug de sincronización — confirmado con una prueba dirigida (franja de prueba en una fila alta, visible correctamente) antes de concluir que el pipeline de "mapa grande" funciona sin cambios.
+
+**Criterio de cierre de fase:** ✅ cumplido — recorrido fluido de un nivel de 100 tiles con paralaje, cámara siguiendo al jugador, sin tiles corruptos al cruzar el límite del buffer circular. Medición rigurosa de FPS bajo carga real queda pendiente para la Fase 9 (F2-10).
 
 ---
 

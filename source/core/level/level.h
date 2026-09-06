@@ -68,4 +68,8 @@ bool level_rect_solid(const Level *lv, fx_t x, fx_t y, int16_t w, int16_t h);
    de que esta función exista después de esa fase. */
 const Level *level_get_test_room(void);
 
+/* Sala de prueba de la Fase 2 (más ancha que un screenblock de
+   hardware, ver docs/TAREAS_MIGRACION_GBA.md, F2-09). */
+const Level *level_get_scroll_test_room(void);
+
 #endif /* PERSEO_CORE_LEVEL_H */

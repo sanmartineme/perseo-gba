@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "../core/level/level.h"
 
 /* ---------- Input (Fase 1) ----------
    Mapeo de botones según docs/PLAN_MIGRACION_GBA_C.md, sección 6:
@@ -40,11 +41,33 @@ bool pal_input_throw_pressed(void);
 bool pal_input_start_pressed(void);
 bool pal_input_select_pressed(void);
 
-/* ---------- Vídeo (Fase 2) ---------- */
+/* ---------- Vídeo (Fase 2) -----------------------------------------
+   Modo 0 (4 capas tiled, sin rotación/escala — ver docs/PLAN_MIGRACION_GBA_C.md,
+   sección 2): BG2 es el tilemap colisionable del nivel, BG1 una capa de
+   paralaje simple. Los tiles de fondo son placeholders de color sólido
+   (grit + arte real llegan en la Fase 3); lo que se prueba acá es el
+   *mecanismo* de scroll con mapas más grandes que un screenblock de
+   hardware (32x32 tiles), no el arte final. */
 void pal_video_init(void);
-/* void pal_video_load_tileset(...); */
-/* void pal_video_scroll_bg(int layer, int x, int y); */
-/* void pal_video_draw_sprite(...); */
+
+/* Sincroniza la ventana visible del tilemap de BG2 con el nivel real y
+   aplica el scroll de cámara. Usa la técnica de "mapa grande" (Tonc):
+   un screenblock de 32x32 tiles se reutiliza como buffer circular,
+   reescribiendo sólo las columnas/filas que quedan recién expuestas a
+   medida que la cámara se mueve, en vez de redibujar todo el nivel
+   cada frame. cam_x/cam_y en píxeles enteros de mundo. */
+void pal_video_sync_level(const Level *lv, int cam_x, int cam_y);
+
+/* Capa de paralaje (BG1): un único tile de relleno que se desplaza a
+   una fracción de la velocidad de la cámara, dando sensación de
+   profundidad — antesala de las capas de paralaje reales de la Fase 3
+   (drawParallax() del prototipo). */
+void pal_video_set_parallax_scroll(int cam_x, int cam_y);
+
+/* Sprite del jugador (OBJ real de hardware, no un rectángulo dibujado a
+   mano como en la Fase 1). scr_x/scr_y ya en coordenadas de pantalla
+   (posición de mundo menos cámara). */
+void pal_video_set_player_sprite(int scr_x, int scr_y);
 
 /* ---------- Audio (Fase 6) ---------- */
 void pal_audio_init(void);
