@@ -17,6 +17,10 @@ assets/gen/*
 third_party/*
 !third_party/.gitkeep
 
+# Emuladores descargados para pruebas manuales locales (no son parte del
+# proyecto ni se distribuyen con él — ver docs/TAREAS_MIGRACION_GBA.md, F0-08)
+tools/emulators/
+
 # Sistema
 .DS_Store
 Thumbs.db

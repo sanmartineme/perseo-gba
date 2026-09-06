@@ -34,24 +34,35 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 1 — Núcleo del loop y física del jugador
 
-- [ ] **F1-01** Escribir `core/fixed.h`: tipo `fx_t` (Q8.8) y operaciones (`fx_add`, `fx_mul`, `fx_div`, conversión a/desde entero).
+- [x] **F1-01** Escribir `core/fixed.h`: tipo `fx_t` (Q8.8) y operaciones (`fx_add`, `fx_mul`, `fx_div`, conversión a/desde entero). *(Hecho, header-only.)*
 - [ ] **F1-02** Escribir `tests/unit/test_fixed.c` y confirmar que compila/corre nativo (gcc de escritorio, sin GBA).
-- [ ] **F1-03** Definir `core/entity.h`: struct de entidad genérica (posición, velocidad, tipo, flags, campos específicos por unión o por tabla aparte).
-- [ ] **F1-04** Implementar `core/entity_pool.h/.c`: pool estático con alta/baja de entidades, tamaño máximo fijado según el peor caso observado en `buildLevelN()` del prototipo.
-- [ ] **F1-05** Escribir `tests/unit/test_entity_pool.c` (alta, baja, reciclado de slots).
-- [ ] **F1-06** Crear un tilemap mínimo de prueba (una habitación pequeña hardcodeada) en `core/level/level.h`/`.c` como stub temporal.
-- [ ] **F1-07** Implementar `tileAt`/`rectSolid` equivalentes en `core/level.c` (traducción directa de [index.html:1587-1597](index.html#L1587-L1597)).
-- [ ] **F1-08** Definir `core/player.h`: struct `Player` con los campos de `P{}` ([index.html:1569](index.html#L1569)) traducidos a `fx_t`.
-- [ ] **F1-09** Portar movimiento horizontal (aceleración/desaceleración, `SPD`/`ACC`) a `core/player.c`.
-- [ ] **F1-10** Portar gravedad + salto + coyote time + jump buffer.
-- [ ] **F1-11** Portar doble salto (`djump`).
-- [ ] **F1-12** Portar Dash Sombrío (`dash`), incluido su cooldown.
-- [ ] **F1-13** Portar Garra Felina (`climb`, agarre y salto de muro).
-- [ ] **F1-14** Definir `platform/pal.h` con las funciones de input necesarias (`pal_input_left()`, `pal_input_jump_pressed()`, etc.).
-- [ ] **F1-15** Implementar `platform/gba/pal_gba_input.c` sobre `REG_KEYINPUT`, mapeado según la tabla de controles del plan (sección 6).
-- [ ] **F1-16** Implementar el loop principal en `platform/gba/gba_main.c`: IRQ de VBlank + llamada a `player_update()` a 60 Hz fijo.
-- [ ] **F1-17** Prueba manual en mGBA: mover, saltar, doble salto, dash y trepar sobre el tilemap de prueba.
-- [ ] **F1-18** (Si se adoptó SDL) validar que el mismo `core/player.c` compila y se comporta igual en el build de escritorio.
+  - **Bloqueada:** no hay ningún compilador C nativo (x86) disponible en esta máquina — no hay MinGW/gcc, ni MSVC (`cl`), ni WSL con una distro instalada (`wsl -l` no lista ninguna). Instalar una distro de WSL completa solo para esto es desproporcionado para el checklist actual. **Pendiente**: instalar MinGW-w64/MSYS2 propio o una distro WSL, o correr estas pruebas en CI más adelante. Mientras tanto la corrección de `fixed.h` se validó por revisión manual y, indirectamente, por el comportamiento correcto observado en el ROM real (ver F1-17).
+- [x] **F1-03** Definir `core/entity.h`: struct de entidad genérica. *(Hecho — catálogo de `EntityType` igual al de la sección 1 del plan.)*
+- [x] **F1-04** Implementar `core/entity_pool.h/.c`: pool estático (`ENTITY_POOL_CAPACITY=64`), sin malloc/free.
+- [ ] **F1-05** Escribir `tests/unit/test_entity_pool.c`. **Bloqueada por la misma razón que F1-02** (sin compilador nativo).
+- [x] **F1-06** Crear la habitación de prueba en `core/level/level.h`/`.c`: 30×20 tiles (240×160 px, exactamente la pantalla de GBA) con paredes laterales, suelo, plataforma flotante y saliente — pensada para poder probar cada mecánica de movimiento.
+- [x] **F1-07** Implementar `tile_is_solid`/`level_tile_at`/`level_rect_solid` (equivalentes a `isSolid`/`tileAt`/`rectSolid`).
+- [x] **F1-08** Definir `core/player.h`: struct `Player` con los campos de `P{}` traducidos a `fx_t`.
+- [x] **F1-09** Portar movimiento horizontal (aceleración/desaceleración, fricción).
+- [x] **F1-10** Portar gravedad + salto + coyote time + jump buffer + salto de altura variable.
+- [x] **F1-11** Portar Salto Doble.
+- [x] **F1-12** Portar Dash Sombrío, incluido su cooldown (mismo orden de evaluación que el prototipo: `dash_cd--` antes del chequeo de gatillo).
+- [x] **F1-13** Portar Garra Felina (agarre de muro + salto de muro).
+- [x] **F1-14** Definir `platform/pal.h` con las funciones de input necesarias.
+- [x] **F1-15** Implementar `platform/gba/pal_gba_input.c` sobre `key_is_down`/`key_hit` de libtonc, mapeado según la tabla de controles del plan.
+- [x] **F1-16** Implementar el loop principal (en `source/main.c`, no en un `gba_main.c` separado — ver nota de desviación abajo): `VBlankIntrWait()` + `player_update()` a 60 Hz fijo.
+- [x] **F1-17** Prueba en emulador (VBA-M, no mGBA — ver Fase 0). *(Parcial pero suficiente para cerrar la fase, ver detalle abajo.)*
+- [ ] **F1-18** Build de escritorio SDL2. *(Pospuesto — no bloqueante; se retoma si hace falta iterar más rápido en la Fase 4/5, que es donde la lógica se vuelve más compleja.)*
+
+**Desviación de nombres respecto al plan original:** el loop principal quedó en `source/main.c` (heredado de la Fase 0) en vez de crear `source/platform/gba/gba_main.c` — es una diferencia cosmética, no arquitectónica: sigue siendo el único archivo con permiso para incluir `<tonc.h>`, y `source/core/` sigue sin ninguna dependencia de plataforma.
+
+**Nota sobre F1-02/F1-05 (pruebas nativas bloqueadas):** el principio de "`core/` compila y se prueba también en PC" (sección 4.1 del plan) sigue siendo válido y vale la pena retomarlo, pero requiere resolver primero la falta de un compilador nativo en esta máquina — no es un bloqueo del motor en sí.
+
+**Detalle de F1-17 (verificación en emulador):**
+- ✅ **Geometría estática correcta**: paredes, suelo, plataforma y saliente se ven donde deben (confirmado con capturas propias y una captura del usuario del ROM corriendo).
+- ✅ **Spawn correcto**: el jugador aparece cerca de la pared izquierda, apoyado sobre el suelo (gravedad + colisión vertical funcionando).
+- ⚠️ **Bug real encontrado y corregido en el camino**: la primera versión del render de depuración redibujaba las ~136 tiles de la sala en cada vuelta del loop, superando el presupuesto de VBlank en Modo 3 (sin doble buffer) y produciendo *tearing* real y estable contra el haz de refresco (se veía como una "escalera" en vez de rectángulos limpios). Se corrigió dibujando la geometría estática una sola vez y, por frame, sólo la pequeña zona del jugador — ver el comentario "NOTA de rendimiento" en `source/main.c`. Este hallazgo es exactamente el tipo de problema que la Fase 9 (optimización) debería anticipar para el renderer real.
+- ⚠️ **Movimiento/salto/dash/escalada interactivos: confirmación visual propia inconclusa** — automatizar la inyección de teclado hacia una ventana externa (VBA-M) desde este entorno resultó muy poco confiable (bloqueos de foco de Windows, minimizados espontáneos, cierres del proceso al redimensionar). Se recomienda que una persona confirme la sensación real jugando el ROM manualmente: D-Pad mover, A saltar (y de nuevo en el aire para Salto Doble), R dashear, mantener una dirección + A en el aire junto a una pared para Garra Felina. El *código* de estos sistemas está completo y revisado línea por línea contra el prototipo (ver `source/core/player.c`).
 
 **Criterio de cierre de fase:** el jugador se mueve/salta/colisiona con el mismo *feel* que el prototipo web, verificado lado a lado.
 

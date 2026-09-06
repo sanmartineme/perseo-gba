@@ -7,7 +7,7 @@
 
    Regla de la arquitectura (ver docs/PLAN_MIGRACION_GBA_C.md, sección 4 y 9.1):
    NINGÚN archivo bajo source/core/ puede incluir <gba.h>, <tonc.h> ni ningún
-   header de source/platform/*. Todo lo que core/ necesita del hardware pasa
+   header de source/platform/ (ni sus subcarpetas). Todo lo que core/ necesita del hardware pasa
    por las funciones declaradas aquí.
 
    Este archivo se rellena de forma incremental a medida que avanza el
