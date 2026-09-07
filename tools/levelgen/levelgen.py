@@ -30,6 +30,13 @@ BOSS_IDS = {
     "maton": "BOSS_MATON", "guardia": "BOSS_GUARDIA", "betty": "BOSS_BETTY",
 }
 
+# Habilidad de santuario -> AbilityId de core/player.h.
+ABILITY_IDS = {"djump": "ABIL_DJUMP", "dash": "ABIL_DASH", "climb": "ABIL_CLIMB"}
+
+# Reliquia -> RelicId de core/relics.h.
+RELIC_IDS = {"colmillo": "RELIC_COLMILLO", "pata": "RELIC_PATA",
+             "bigotes": "RELIC_BIGOTES"}
+
 BANNER = ("/* ARCHIVO GENERADO por tools/levelgen/levelgen.py — no editar a mano.\n"
           "   Fuente: {src}\n"
           "   Ver tools/levelgen/schema_nivel.md */\n")
@@ -94,14 +101,33 @@ def emit(spec, src_path, out_dir):
             if boss not in BOSS_IDS:
                 raise RuntimeError(f"{src_path.name}: jefe desconocido '{boss}'")
             param = BOSS_IDS[boss]
+        elif kind == "shrine":
+            ab = e.get("ability")
+            if ab not in ABILITY_IDS:
+                raise RuntimeError(f"{src_path.name}: habilidad desconocida '{ab}'")
+            param = ABILITY_IDS[ab]
+        elif kind == "relic":
+            rid = e.get("relic")
+            if rid not in RELIC_IDS:
+                raise RuntimeError(f"{src_path.name}: reliquia desconocida '{rid}'")
+            param = RELIC_IDS[rid]
         else:
             param = str(int(param))
+
+        # El cartel guarda su frase en `text`; el santuario, el nombre de
+        # la habilidad en `text` y su explicacion en `desc`. Van como
+        # punteros a literal de ROM: no cuestan RAM.
+        text = c_string(e["text"]) if e.get("text") else "0"
+        if kind == "shrine":
+            text = c_string(e["name"]) if e.get("name") else "0"
+        desc = c_string(e["desc"]) if e.get("desc") else "0" 
 
         gate = e.get("gate", [0, 0, 0, 0])
         passage = e.get("passage", [0, 0, 0, 0])
         yband = e.get("yband", [0, 0])
         exit_at = e.get("exit", [0, 0])
-        ents.append((ENTITY_TYPES[kind], tx, ty, param, gate, passage, yband, exit_at))
+        ents.append((ENTITY_TYPES[kind], tx, ty, param, gate, passage, yband,
+                     exit_at, text, desc))
 
     header = out_dir / f"{ident}.h"
     source = out_dir / f"{ident}.c"
@@ -116,7 +142,8 @@ def emit(spec, src_path, out_dir):
         f"#endif /* {guard} */\n",
         encoding="utf-8")
 
-    lines = [banner, '#include "level.h"', '#include "../boss/boss_config.h"', '#include "../audio.h"', "",
+    lines = [banner, '#include "level.h"', '#include "../boss/boss_config.h"', '#include "../audio.h"',
+             '#include "../player.h"', '#include "../relics.h"', "",
              f"static const uint8_t {ident}_tiles[{w * h}] = {{"]
     flat = [v for row in grid for v in row]
     for i in range(0, len(flat), 32):
@@ -126,12 +153,13 @@ def emit(spec, src_path, out_dir):
 
     if ents:
         lines.append(f"static const LevelEntitySpawn {ident}_entities[{len(ents)}] = {{")
-        for kind, tx, ty, param, gate, passage, yband, exit_at in ents:
+        for kind, tx, ty, param, gate, passage, yband, exit_at, text, desc in ents:
             g = ", ".join(str(v) for v in gate)
             pa = ", ".join(str(v) for v in passage)
             yb = ", ".join(str(v) for v in yband)
             lines.append(f"    {{ {kind}, {tx}, {ty}, {param}, "
-                         f"{{ {g} }}, {{ {pa} }}, {{ {yb} }}, {exit_at[0]}, {exit_at[1]} }},")
+                         f"{{ {g} }}, {{ {pa} }}, {{ {yb} }}, {exit_at[0]}, {exit_at[1]}, "
+                         f"{text}, {desc} }},")
         lines.append("};")
         ent_ref, ent_count = f"{ident}_entities", len(ents)
     else:

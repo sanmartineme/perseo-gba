@@ -34,7 +34,8 @@ static bool state_hides_sprites(GameState st) {
     /* El título usa el nivel como fondo en movimiento, pero no su
        contenido: sin esto se verían los corazones del HUD y las ratas
        del nivel 1 paseando por debajo del logotipo. */
-    return st == GS_TITLE || st == GS_STORY || st == GS_INVENTORY;
+    return st == GS_TITLE || st == GS_STORY || st == GS_INVENTORY ||
+           st == GS_ENDING || st == GS_CREDITS;
 }
 
 /* Mosaico de la transición: sube mientras cierra y baja mientras abre,

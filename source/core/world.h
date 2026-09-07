@@ -14,7 +14,31 @@
 
 #include "entity.h"
 #include "player.h"
+#include "relics.h"
 #include "level/level.h"
+
+/* Cosas que pasan en el mundo pero que decide la partida: abrir un
+   cartel de objeto, cambiar de nivel, guardar en un punto de control.
+   world.c no conoce Game (ni debe: es lo que lo mantiene portable y
+   testeable), asi que deja el aviso aca y game_update() lo recoge
+   despues de actualizar. Uno por frame alcanza de sobra: son eventos de
+   interaccion, no ocurren dos en el mismo frame. */
+typedef enum WorldEventKind {
+    WEV_NONE = 0,
+    WEV_BANNER,      /* habilidad o reliquia conseguida: title + desc */
+    WEV_DOOR,        /* puerta a otro nivel: `param` es el indice */
+    WEV_ENDING,      /* puerta del Trono: arranca el final */
+    WEV_CHECKPOINT,  /* lampara encendida: `tx`,`ty` donde reaparecer */
+    WEV_BOSS_INTRO   /* el jugador cruzo el disparador del jefe */
+} WorldEventKind;
+
+typedef struct WorldEvent {
+    uint8_t kind;
+    const char *title;
+    const char *desc;
+    int16_t param;
+    int16_t tx, ty;
+} WorldEvent;
 
 typedef struct Rect {
     fx_t x, y;
@@ -43,6 +67,14 @@ typedef struct World {
     Entity *boss_gate;
     bool boss_active;
 
+    /* Aviso pendiente para la capa de partida (ver WorldEvent). Lo
+       consume game_update() y lo vuelve a poner en WEV_NONE. */
+    WorldEvent event;
+
+    /* Texto del cartel que Perseo tiene al lado ahora mismo, o 0. Se
+       recalcula cada frame: no es un evento, es un estado. */
+    const char *sign_text;
+
     /* Escala de daño de la dificultad elegida, como fracción entera
        (ver DIFF_CFGS en core/game_state.c). Vive acá y no en Game para
        que world_damage_player() no necesite conocer la partida entera;
@@ -51,6 +83,16 @@ typedef struct World {
 } World;
 
 void world_load(World *w, const Level *lv);
+
+/* Devuelve al jugador lo que ya tenia y quita del nivel los santuarios y
+   reliquias que ya habia recogido, para que no vuelvan a aparecer. Se
+   llama justo despues de world_load(). */
+void world_apply_progress(World *w, const PlayerProgress *pr);
+/* Coloca a Perseo en un tile concreto (reaparecer en un punto de
+   control). Equivale a placePlayer() del prototipo. */
+void world_place_player(World *w, int16_t tx, int16_t ty);
+/* Copia el progreso actual, para poder recargar el nivel sin perderlo. */
+void world_take_progress(const World *w, PlayerProgress *pr);
 
 /* Cambia tiles del nivel en marcha (rejillas rotas, puertas de arena). */
 void world_carve(World *w, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t id);

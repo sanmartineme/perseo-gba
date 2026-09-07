@@ -42,6 +42,10 @@
 #include "bosses.h"
 #include "fx_8x8.h"
 #include "fx_particles.h"
+#include "props_16x16.h"
+#include "props_16x32.h"
+#include "props_8x16.h"
+#include "props_8x8.h"
 
 #define TILES_OF(len)   ((len) / 32) /* un tile 4bpp son 32 bytes */
 #define TB_PERSEO       0
@@ -51,11 +55,16 @@
 #define TB_FX           (TB_E16X16  + TILES_OF(enemies_16x16TilesLen))
 #define TB_PARTICLES    (TB_FX      + TILES_OF(fx_8x8TilesLen))
 #define TB_BOSSES       (TB_PARTICLES + TILES_OF(fx_particlesTilesLen))
+#define TB_PROP16       (TB_BOSSES    + TILES_OF(bossesTilesLen))
+#define TB_PROP16X32    (TB_PROP16    + TILES_OF(props_16x16TilesLen))
+#define TB_PROP8X16     (TB_PROP16X32 + TILES_OF(props_16x32TilesLen))
+#define TB_PROP8        (TB_PROP8X16  + TILES_OF(props_8x16TilesLen))
 
 #define PALBANK_PERSEO  0
 #define PALBANK_ENEMY   1
 #define PALBANK_FX      2
 #define PALBANK_BOSS    3
+#define PALBANK_PROPS   4
 
 #define BG_CBB_INDEX 0
 #define BG2_SBB_INDEX 8
@@ -114,11 +123,16 @@ void pal_video_init(void) {
     memcpy32(&tile_mem_obj[0][TB_FX],        fx_8x8Tiles,        fx_8x8TilesLen / 4);
     memcpy32(&tile_mem_obj[0][TB_PARTICLES], fx_particlesTiles,  fx_particlesTilesLen / 4);
     memcpy32(&tile_mem_obj[0][TB_BOSSES],    bossesTiles,        bossesTilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_PROP16],    props_16x16Tiles,   props_16x16TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_PROP16X32], props_16x32Tiles,   props_16x32TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_PROP8X16],  props_8x16Tiles,    props_8x16TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_PROP8],     props_8x8Tiles,     props_8x8TilesLen / 4);
 
     memcpy32(&pal_obj_mem[PALBANK_PERSEO * 16], perseoPal,       perseoPalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_ENEMY * 16],  enemies_16x8Pal, enemies_16x8PalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_FX * 16],     fx_8x8Pal,       fx_8x8PalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_BOSS * 16],   bossesPal,       bossesPalLen / 4);
+    memcpy32(&pal_obj_mem[PALBANK_PROPS * 16],  props_16x16Pal,  props_16x16PalLen / 4);
 
     SBB_CLEAR(BG2_SBB_INDEX);
     SBB_CLEAR(BG1_SBB_INDEX);
@@ -224,6 +238,13 @@ static const SpriteDef SPRITE_16X8  = { TB_E16X8,  2, 2, ATTR0_WIDE,   ATTR1_SIZ
 static const SpriteDef SPRITE_8X8   = { TB_E8X8,   1, 2, ATTR0_SQUARE, ATTR1_SIZE_8x8,   PALBANK_ENEMY };
 static const SpriteDef SPRITE_16X16 = { TB_E16X16, 4, 2, ATTR0_SQUARE, ATTR1_SIZE_16x16, PALBANK_ENEMY };
 static const SpriteDef SPRITE_FX    = { TB_FX,     1, 1, ATTR0_SQUARE, ATTR1_SIZE_8x8,   PALBANK_FX };
+/* Decorado interactivo. Una hoja por forma de OBJ: shrine 16x16,
+   puerta 16x32 (el arte es de 16x24 y el resto va transparente),
+   lampara y cartel 8x16, reliquias 8x8. */
+static const SpriteDef SPRITE_SHRINE = { TB_PROP16,    4, 1, ATTR0_SQUARE, ATTR1_SIZE_16x16, PALBANK_PROPS };
+static const SpriteDef SPRITE_DOOR   = { TB_PROP16X32, 8, 1, ATTR0_TALL,   ATTR1_SIZE_16x32, PALBANK_PROPS };
+static const SpriteDef SPRITE_TALL8  = { TB_PROP8X16,  2, 1, ATTR0_TALL,   ATTR1_SIZE_8x16,  PALBANK_PROPS };
+static const SpriteDef SPRITE_RELIC  = { TB_PROP8,     1, 1, ATTR0_SQUARE, ATTR1_SIZE_8x8,   PALBANK_PROPS };
 
 /* Ranura de OAM que toca; se reinicia en cada frame. */
 static int s_obj_next;
@@ -258,6 +279,16 @@ static const SpriteDef *sprite_for(const Entity *e, int *first_frame) {
         case ENT_PROJ_SHOCK: *first_frame = FX_SHOCK; return &SPRITE_FX;
         case ENT_CHAPA:      *first_frame = FX_CHAPA; return &SPRITE_FX;
         case ENT_HP:         *first_frame = FX_HEART; return &SPRITE_FX;
+
+        /* Decorado interactivo (Fase 7). La lámpara elige frame según
+           esté encendida o no, que es el único estado que tiene. */
+        case ENT_SHRINE: *first_frame = 0; return &SPRITE_SHRINE;
+        case ENT_RELIC:  *first_frame = e->param < 3 ? e->param : 0; return &SPRITE_RELIC;
+        case ENT_LAMP:   *first_frame = e->state ? 1 : 0; return &SPRITE_TALL8;
+        case ENT_SIGN:   *first_frame = 2; return &SPRITE_TALL8;
+        case ENT_DOOR:
+        case ENT_VDOOR:  *first_frame = 0; return &SPRITE_DOOR;
+
         default: return 0;
     }
 }

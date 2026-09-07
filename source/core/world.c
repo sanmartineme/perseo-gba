@@ -6,6 +6,7 @@
 #include "enemies/enemy_common.h"
 #include "boss/boss_fsm.h"
 #include "audio.h"
+#include "relics.h"
 #include <string.h>
 
 /* ---------- Cajas de colisión ---------- */
@@ -88,6 +89,11 @@ void world_damage_player(World *w, int amount, int8_t dir) {
         amount = (amount * w->dmg_num + w->dmg_den / 2) / w->dmg_den;
         if (amount < 1) amount = 1;
     }
+    /* Bigotes de Acero: -1, nunca por debajo de 1. */
+    if (p->relics_equipped & RELIC_BIT(RELIC_BIGOTES)) {
+        amount = amount > 1 ? amount - 1 : 1;
+    }
+    p->regen_t = 0;
     p->hp -= (int16_t)amount;
     p->inv = 90;
     p->vx = fx_mul(fx_from_int(dir ? dir : 1), FX_C(2.0));
@@ -109,6 +115,10 @@ void world_hit_enemy(World *w, Entity *e, int amount) {
            de cambiar golpes de frente. */
         if (e->state == BOSS_STUN) amount *= 2;
     }
+    /* Colmillo Afilado. Va acá y no en el ataque cuerpo a cuerpo para
+       copiar al prototipo, que lo suma dentro de hitEnemy(): la traza
+       lanzada también se beneficia. */
+    if (w->player.relics_equipped & RELIC_BIT(RELIC_COLMILLO)) amount += 1;
     e->hp -= (int16_t)amount;
     e->flash = 8;
     Rect box = entity_box(e);
@@ -211,15 +221,18 @@ void world_load(World *w, const Level *lv) {
                 fx_from_int((int32_t)lv->spawn_tx * TILE_SIZE),
                 fx_from_int((int32_t)lv->spawn_ty * TILE_SIZE));
 
-    /* Instancia las entidades que trae el nivel. Las que todavía no tienen
-       sistema propio (santuarios, puertas, carteles, lámparas: Fase 7) se
-       saltean — están en los datos, pero nadie las mira aún. */
+    w->event.kind = WEV_NONE;
+    w->sign_text = 0;
+
+    /* Instancia las entidades que trae el nivel. */
     for (int i = 0; i < lv->entity_count; i++) {
         const LevelEntitySpawn *sp = &lv->entities[i];
         switch (sp->type) {
             case ENT_RAT: case ENT_ROACH: case ENT_MOSQ: case ENT_GUNNER:
             case ENT_BAT: case ENT_THUG: case ENT_BRUTE:
-            case ENT_CHAPA: case ENT_HP:
+            case ENT_CHAPA: case ENT_HP: case ENT_RELIC:
+            case ENT_SHRINE: case ENT_LAMP: case ENT_SIGN:
+            case ENT_DOOR: case ENT_VDOOR:
             case ENT_BOSS: case ENT_BOSSGATE:
                 break;
             default:
@@ -241,6 +254,100 @@ void world_load(World *w, const Level *lv) {
             w->boss_gate = e;
         }
     }
+}
+
+/* Deja un aviso para la capa de partida. El primero del frame gana: si
+   dos interacciones coincidieran, la segunda seguiría estando ahí el
+   frame siguiente, porque las entidades no se consumen hasta que su
+   interacción se resuelve. */
+static void post_event(World *w, WorldEventKind kind,
+                       const char *title, const char *desc, int16_t param) {
+    if (w->event.kind != WEV_NONE) return;
+    w->event.kind = (uint8_t)kind;
+    w->event.title = title;
+    w->event.desc = desc;
+    w->event.param = param;
+    w->event.tx = w->event.ty = 0;
+}
+
+/* Santuario: entrega una de las tres habilidades llave. La caja es más
+   angosta que el sprite (el santuario tiene una base ancha que no debe
+   contar) — mismos números que el prototipo. */
+static void update_shrine(World *w, Entity *e) {
+    Rect box = { fx_add(e->x, fx_from_int(3)), e->y, 10, 16 };
+    if (!rect_overlap(box, player_box(&w->player))) return;
+    AbilityId id = (AbilityId)e->param;
+    if (!player_grant_ability(&w->player, id)) return;
+
+    audio_play_sfx(SFX_ABILITY);
+    particles_burst(fx_add(e->x, fx_from_int(8)), fx_add(e->y, fx_from_int(4)),
+                    PCOL_WHITE, 16, FX_C(3.5));
+    w->shake = 4;
+    const char *name = e->spawn && e->spawn->text ? e->spawn->text : ABILITY_NAMES[id];
+    post_event(w, WEV_BANNER, name, e->spawn ? e->spawn->desc : 0, 0);
+    entity_pool_free(e);
+}
+
+static void update_relic(World *w, Entity *e) {
+    Rect box = { e->x, e->y, 8, 8 };
+    if (!rect_overlap(box, player_box(&w->player))) return;
+    RelicId id = (RelicId)e->param;
+    if (id >= RELIC_COUNT) return;
+    uint8_t bit = RELIC_BIT(id);
+    if (w->player.relics_found & bit) return;
+
+    w->player.relics_found |= bit;
+    /* Se equipa sola si queda hueco: la primera reliquia del juego no
+       debería obligar a abrir el inventario para que sirva de algo. */
+    if (relic_equipped_count(w->player.relics_equipped) < RELIC_MAX_EQUIPPED) {
+        w->player.relics_equipped |= bit;
+    }
+    audio_play_sfx(SFX_ABILITY);
+    particles_burst(fx_add(e->x, fx_from_int(4)), fx_add(e->y, fx_from_int(4)),
+                    PCOL_GOLD, 12, FX_C(2.5));
+    w->shake = 3;
+    post_event(w, WEV_BANNER, RELICS[id].name, RELICS[id].desc, 0);
+    entity_pool_free(e);
+}
+
+/* Lámpara: punto de control. Sólo una encendida a la vez, como en el
+   prototipo — la nueva apaga a las demás. */
+static void update_lamp(World *w, Entity *e) {
+    if (e->state) return;
+    Rect box = { e->x, e->y, 8, 16 };
+    if (!rect_overlap(box, player_box(&w->player))) return;
+
+    for (int i = 0; i < ENTITY_POOL_CAPACITY; i++) {
+        Entity *o = entity_pool_at(i);
+        if (o->alive && o->type == ENT_LAMP) o->state = 0;
+    }
+    e->state = 1;
+    audio_play_sfx(SFX_CHECK);
+    particles_burst(fx_add(e->x, fx_from_int(4)), fx_add(e->y, fx_from_int(2)),
+                    PCOL_GOLD, 8, FX_C(2.0));
+    post_event(w, WEV_CHECKPOINT, 0, 0, 0);
+    w->event.tx = (int16_t)(fx_to_int(e->x) / TILE_SIZE);
+    w->event.ty = (int16_t)(fx_to_int(e->y) / TILE_SIZE - 1);
+}
+
+static void update_sign(World *w, Entity *e) {
+    if (!e->spawn || !e->spawn->text) return;
+    fx_t dx = fx_sub(w->player.x, e->x);
+    fx_t dy = fx_sub(w->player.y, e->y);
+    if (dx < 0) dx = fx_neg(dx);
+    if (dy < 0) dy = fx_neg(dy);
+    if (dx < fx_from_int(26) && dy < fx_from_int(30)) w->sign_text = e->spawn->text;
+}
+
+static void update_door(World *w, Entity *e) {
+    Rect box = { e->x, e->y, 16, 24 };
+    if (!rect_overlap(box, player_box(&w->player))) return;
+    if (e->type == ENT_VDOOR) {
+        post_event(w, WEV_ENDING, 0, 0, 0);
+        return;
+    }
+    audio_play_sfx(SFX_DOOR);
+    post_event(w, WEV_DOOR, 0, 0, e->param);
 }
 
 /* Disparador de la pelea: sella la arena cuando el jugador la cruza.
@@ -269,34 +376,61 @@ static void update_bossgate(World *w, Entity *gate) {
        pelea. */
     if (w->player.inv < 90) w->player.inv = 90;
 
-    w->boss->state = BOSS_INTRO;
+    /* El jefe espera quieto mientras se cruzan las réplicas; entra en
+       escena cuando la partida cierra el diálogo (GS_BOSSDIALOG). */
+    w->boss->state = BOSS_WAIT;
     w->boss->timer = 0;
-    w->shake = 5;
-    audio_play_sfx(SFX_BOSS);
+    audio_play_sfx(SFX_CHECK);
     audio_play_song(SONG_BOSS);
+    post_event(w, WEV_BOSS_INTRO, 0, 0, w->boss->param);
 }
 
-/* Muerte: por ahora se reinicia el nivel entero. El prototipo mostraba
-   una pantalla de muerte y reaparecía en el último checkpoint (la lámpara
-   encendida), pero eso necesita la máquina de estados y el guardado de la
-   Fase 7. Reiniciar mantiene el juego jugable sin fingir que ya existe
-   algo que todavía no está. */
-static void handle_death(World *w) {
-    const Level *lv = w->lv;
-    int16_t chapas = w->chapas;
-    PlayerAbilities ab = w->player.ab;
-    world_load(w, lv);
-    w->chapas = chapas;      /* las monedas ya recogidas no se pierden */
-    w->player.ab = ab;       /* ni las habilidades desbloqueadas */
+/* ---------- Progreso que sobrevive a recargar el nivel ---------- */
+
+void world_take_progress(const World *w, PlayerProgress *pr) {
+    pr->ab = w->player.ab;
+    pr->relics_found = w->player.relics_found;
+    pr->relics_equipped = w->player.relics_equipped;
+    pr->chapas = w->chapas;
+}
+
+void world_place_player(World *w, int16_t tx, int16_t ty) {
+    Player *p = &w->player;
+    p->x = fx_from_int((int32_t)tx * TILE_SIZE);
+    p->y = fx_from_int((int32_t)ty * TILE_SIZE);
+    p->vx = p->vy = 0;
+    p->dash_t = 0;
+    p->on_ground = false;
+}
+
+void world_apply_progress(World *w, const PlayerProgress *pr) {
+    w->player.ab = pr->ab;
+    w->player.relics_found = pr->relics_found;
+    w->player.relics_equipped = pr->relics_equipped;
+    w->chapas = pr->chapas;
+
+    /* Lo ya conseguido no vuelve a aparecer. Sin esto, morir en el nivel
+       1 dejaría los dos santuarios otra vez de pie, con su cartel y su
+       fanfarria, entregando algo que Perseo ya tiene. */
+    for (int i = 0; i < ENTITY_POOL_CAPACITY; i++) {
+        Entity *e = entity_pool_at(i);
+        if (!e->alive) continue;
+        if (e->type == ENT_SHRINE && player_has_ability(&w->player, (AbilityId)e->param)) {
+            entity_pool_free(e);
+        } else if (e->type == ENT_RELIC && e->param < RELIC_COUNT &&
+                   (w->player.relics_found & RELIC_BIT(e->param))) {
+            entity_pool_free(e);
+        }
+    }
 }
 
 void world_update(World *w, const PlayerInput *in) {
-    if (w->player.dead) {
-        handle_death(w);
-        return;
-    }
+    /* Muerto no se actualiza nada: la pantalla de muerte y la
+       reaparición las lleva core/game_state.c. */
+    if (w->player.dead) return;
     w->tick++;
     if (w->shake > 0) w->shake--;
+    w->sign_text = 0;   /* estado, no evento: vale sólo para este frame */
 
     player_update(&w->player, w, in);
 
@@ -326,6 +460,13 @@ void world_update(World *w, const PlayerInput *in) {
             case ENT_HP:
                 update_pickup(w, e);
                 break;
+
+            case ENT_SHRINE: update_shrine(w, e); break;
+            case ENT_RELIC:  update_relic(w, e);  break;
+            case ENT_LAMP:   update_lamp(w, e);   break;
+            case ENT_SIGN:   update_sign(w, e);   break;
+            case ENT_DOOR:
+            case ENT_VDOOR:  update_door(w, e);   break;
 
             default: break;
         }

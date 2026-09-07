@@ -54,6 +54,12 @@ typedef struct LevelEntitySpawn {
     int16_t passage[4];  /* bossgate: rectángulo que se vacía al abrir la salida */
     int16_t yband[2];    /* bossgate: franja vertical donde el disparador es válido */
     int16_t exit_tx, exit_ty; /* boss: dónde aparece la puerta al vencerlo */
+
+    /* Texto que acompaña a la entidad, o 0. El cartel usa `text` para lo
+       que dice; el santuario, `text` como nombre de la habilidad y
+       `desc` para explicarla. Apuntan a literales en ROM. */
+    const char *text;
+    const char *desc;
 } LevelEntitySpawn;
 
 typedef struct Level {

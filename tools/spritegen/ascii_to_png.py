@@ -71,7 +71,53 @@ SPRITE_SHEETS = [
     ]},
     {"name": "fx/fx_particles", "bank": "fx", "size": (8, 8),
      "source": "assets/src/sprites/fx/fx_particles.txt"},
+
+    # Decorado interactivo (Fase 7): santuarios, reliquias, lamparas de
+    # control, puertas y carteles. Van en su propio banco de paleta porque
+    # el de efectos ya esta lleno. Una hoja por tamano de objeto: la GBA
+    # solo admite ciertas formas de OBJ, y mezclarlas en una hoja obligaria
+    # a calcular offsets a mano.
+    {"name": "props/props_16x16", "bank": "props", "size": (16, 16), "frames": [
+        "shrine",
+    ]},
+    # La puerta del prototipo es de 16x24, que no es un tamano valido de
+    # OBJ: se declara 16x32 y emit_sheet rellena las 8 filas de abajo con
+    # transparente, asi que la posicion en pantalla no cambia.
+    {"name": "props/props_16x32", "bank": "props", "size": (16, 32), "frames": [
+        "door",
+    ]},
+    {"name": "props/props_8x16", "bank": "props", "size": (8, 16), "frames": [
+        "lamp_off", "lamp_on", "sign",
+    ]},
+    {"name": "props/props_8x8", "bank": "props", "size": (8, 8), "frames": [
+        "relic1", "relic2", "relic3",
+    ]},
 ]
+
+# Arte que el prototipo NO tiene como sprite. El cartel lo dibujaba con
+# tres rectangulos sueltos sobre el canvas ([index.html:2310]); aca hace
+# falta un sprite de verdad, asi que se reproduce esa misma forma —
+# tablero, marca amarilla y poste — con los mismos colores.
+EXTRA_ART = {
+    "sign": [
+        "........",
+        "........",
+        "NNNNNNNN",
+        "NNNNNNNN",
+        "NNNYYNNN",
+        "NNNYYNNN",
+        "NNNYYNNN",
+        "NNNNNNNN",
+        "NNNNNNNN",
+        "...nn...",
+        "...nn...",
+        "...nn...",
+        "...nn...",
+        "...nn...",
+        "...nn...",
+        "...nn...",
+    ],
+}
 
 
 def build_palette(char_sets, pal):
@@ -129,9 +175,10 @@ def sheet_frames(sheet, sprites):
         return [(f"{base}_{i}", b) for i, b in enumerate(blocks)]
     out = []
     for fn in sheet["frames"]:
-        if fn not in sprites:
-            raise RuntimeError(f"El prototipo no define SPR.{fn}")
-        out.append((fn, sprites[fn]))
+        rows = sprites.get(fn) or EXTRA_ART.get(fn)
+        if rows is None:
+            raise RuntimeError(f"El prototipo no define SPR.{fn} y no hay arte propio")
+        out.append((fn, rows))
     return out
 
 

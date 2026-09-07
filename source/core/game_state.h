@@ -21,10 +21,12 @@
 
 #include "world.h"
 #include "camera.h"
+#include "dialogue.h"
 
 typedef enum GameState {
     GS_TITLE = 0,   /* menú principal */
     GS_STORY,       /* viñetas: intro del juego o presentación del nivel */
+    GS_BOSSDIALOG,  /* las réplicas previas a una pelea de jefe */
     GS_PLAY,
     GS_BANNER,      /* cartel de habilidad/reliquia recién conseguida */
     GS_INVENTORY,
@@ -62,16 +64,6 @@ typedef struct GameInput {
     bool select_pressed;
 } GameInput;
 
-/* Página de historia: quién habla y qué dice. Las viñetas de la intro y
-   del final del prototipo son {scene, who, text}; `scene` era una
-   ilustración dibujada a mano en canvas y acá todavía no existe, así que
-   se guarda el identificador y la Fase 7 lo ignora sin perderlo. */
-typedef struct StoryPage {
-    const char *who;    /* 0 = narrador */
-    const char *text;
-    uint8_t scene;
-} StoryPage;
-
 #define GAME_LEVEL_COUNT 2   /* los niveles 3-7 llegan en la Fase 8 */
 
 typedef struct Game {
@@ -93,7 +85,11 @@ typedef struct Game {
     const char *const *story_pages;  /* texto plano: historia de nivel */
     const StoryPage   *story_scenes; /* con interlocutor: intro y final */
     uint8_t story_count, story_idx;
-    bool    story_is_intro;          /* al terminar, ¿arranca el nivel 1? */
+    /* Qué hacer cuando se acaban las páginas. */
+    uint8_t story_next;              /* un GameState */
+    /* Un bit por nivel: su historia se cuenta la primera vez y no
+       vuelve a aparecer al morir y recargar. */
+    uint8_t story_shown_mask;
 
     /* --- cartel de objeto conseguido --- */
     const char *banner_title;
@@ -104,10 +100,36 @@ typedef struct Game {
     uint8_t trans_to;       /* nivel destino */
     bool    trans_closing;  /* true mientras cierra, false mientras abre */
 
+    /* Frames que le quedan al rótulo de zona. Va aparte de state_t
+       porque cuenta desde que se ENTRA AL NIVEL: si dependiera del
+       estado, cada cartel de objeto lo haría reaparecer. */
+    int16_t zone_t;
+
+    /* --- inventario --- */
+    int8_t inv_tab;   /* 0 habilidades, 1 objetos */
+    int8_t inv_sel;
+
+    /* --- progreso que sobrevive a recargar un nivel --- */
+    PlayerProgress progress;
+    /* Último punto de control: nivel y tile donde reaparecer. `has_cp`
+       distingue "sin lámpara encendida" de "lámpara en el tile 0,0". */
+    bool    has_checkpoint;
+    uint8_t cp_level;
+    int16_t cp_tx, cp_ty;
+
     /* --- estadísticas de la partida --- */
     uint16_t deaths;
     uint32_t play_frames;
 } Game;
+
+/* Guardado. La partida no sabe que por debajo hay SRAM: llama a estas
+   dos y la PAL resuelve el resto (ver source/core/save.h). */
+bool game_save(const Game *g);
+/* Carga y deja la partida lista para seguir. false si no hay guardado
+   válido, y en ese caso `g` no se toca. */
+bool game_load(Game *g);
+/* ¿Hay una partida guardada? Lo usa el título para ofrecer CONTINUAR. */
+bool game_has_save(void);
 
 void game_init(Game *g);
 void game_update(Game *g, const GameInput *in);

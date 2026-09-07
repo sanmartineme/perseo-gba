@@ -1,0 +1,9 @@
+# Puerta: 16x24 rellenada a 16x32 (el OBJ valido mas chico que la
+# contiene). Meta-tile de 2x4 = 8 tiles por frame.
+-gt
+-gB4
+-Mw2
+-Mh4
+-pn16
+-ftc
+-fh

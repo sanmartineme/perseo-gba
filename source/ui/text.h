@@ -83,6 +83,10 @@ void ui_text_block(int col, int row, UiColor c);
    `filled` de `w` tiles se pintan con `c`, el resto queda oscuro. */
 void ui_text_bar(int col, int row, int w, int filled, UiColor c);
 
+/* Escribe un texto largo partiéndolo por palabras en líneas de `width`
+   tiles, empezando en (col,row). Devuelve cuántas filas ocupó. */
+int ui_text_wrapped(const char *text, int col, int row, int width, UiColor c);
+
 /* Entero a cadena, sin traer <stdio.h> a la ROM por un printf. */
 const char *ui_itoa(int32_t v);
 

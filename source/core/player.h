@@ -20,6 +20,7 @@
 #include <stdbool.h>
 #include "fixed.h"
 #include "level/level.h"
+#include "relics.h"
 
 struct World;
 
@@ -28,6 +29,17 @@ typedef struct PlayerAbilities {
     bool dash;
     bool climb;
 } PlayerAbilities;
+
+/* Las tres habilidades que se encuentran en santuarios, como indice. El
+   struct de arriba es lo que consulta la fisica (un bool con nombre se
+   lee mejor que ab[2]); esto es para los datos del nivel, que sólo
+   pueden guardar un numero. El orden es el de ABILITIES[] del prototipo
+   ([index.html:941]) saltando las dos pasivas. */
+typedef enum AbilityId {
+    ABIL_DJUMP = 0, ABIL_DASH, ABIL_CLIMB, ABIL_COUNT
+} AbilityId;
+
+extern const char *const ABILITY_NAMES[ABIL_COUNT];
 
 typedef struct Player {
     fx_t x, y;             /* posición en píxeles, Q8.8 */
@@ -57,7 +69,28 @@ typedef struct Player {
     int8_t throw_t, throw_cd; /* Lanzamiento de Traza */
 
     PlayerAbilities ab;
+
+    /* --- Reliquias (Fase 7) --- */
+    uint8_t relics_found;     /* mascara de RELIC_BIT(id) */
+    uint8_t relics_equipped;
+    int16_t regen_t;          /* frames sin recibir dano (Pata de la Suerte) */
 } Player;
+
+/* Lo que sobrevive a recargar un nivel: al morir y reaparecer, o al
+   pasar de zona, Perseo no puede olvidar lo que ya se gano. world_load()
+   reconstruye el nivel entero desde ROM, asi que esto se guarda aparte y
+   se vuelve a aplicar despues (world_apply_progress). */
+typedef struct PlayerProgress {
+    PlayerAbilities ab;
+    uint8_t relics_found;
+    uint8_t relics_equipped;
+    int16_t chapas;
+} PlayerProgress;
+
+bool player_has_ability(const Player *p, AbilityId id);
+/* Devuelve false si ya la tenia: el santuario usa eso para no volver a
+   dispararse ni a mostrar el cartel. */
+bool player_grant_ability(Player *p, AbilityId id);
 
 /* Intenciones de input ya resueltas por la capa de plataforma (PAL) —
    ver docs/PLAN_MIGRACION_GBA_C.md, sección 4.2, principio 6:

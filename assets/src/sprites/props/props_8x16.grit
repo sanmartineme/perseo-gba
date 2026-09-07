@@ -1,0 +1,8 @@
+# Lamparas y carteles: meta-tile de 1x2 = frames de 8x16.
+-gt
+-gB4
+-Mw1
+-Mh2
+-pn16
+-ftc
+-fh

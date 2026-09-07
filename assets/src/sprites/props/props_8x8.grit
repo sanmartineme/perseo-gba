@@ -1,0 +1,6 @@
+# Reliquias: un tile por frame, sin meta-tiles.
+-gt
+-gB4
+-pn16
+-ftc
+-fh

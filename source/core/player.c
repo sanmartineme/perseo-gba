@@ -4,6 +4,31 @@
 #include "particles.h"
 #include "projectiles.h"
 #include "audio.h"
+#include "relics.h"
+
+const char *const ABILITY_NAMES[ABIL_COUNT] = {
+    "SALTO DOBLE", "DASH SOMBRÍO", "GARRA FELINA"
+};
+
+bool player_has_ability(const Player *p, AbilityId id) {
+    switch (id) {
+        case ABIL_DJUMP: return p->ab.double_jump;
+        case ABIL_DASH:  return p->ab.dash;
+        case ABIL_CLIMB: return p->ab.climb;
+        default: return false;
+    }
+}
+
+bool player_grant_ability(Player *p, AbilityId id) {
+    if (player_has_ability(p, id)) return false;
+    switch (id) {
+        case ABIL_DJUMP: p->ab.double_jump = true; break;
+        case ABIL_DASH:  p->ab.dash = true; break;
+        case ABIL_CLIMB: p->ab.climb = true; break;
+        default: return false;
+    }
+    return true;
+}
 
 /* Constantes de física — traducción valor-por-valor de las constantes
    locales de updatePlayer() en el prototipo (SPD, ACC, GRV, JV, MAXF) y
@@ -54,6 +79,21 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
 
     /* --- Jump buffer: ventana de 7 frames para que un salto pulsado un
        poco antes de tocar el suelo/muro igual cuente. --- */
+    /* Pata de la Suerte: 1 corazón tras 12 s (720 frames) sin recibir
+       daño. El contador se reinicia mientras dure la invulnerabilidad,
+       que es justo después de un golpe. */
+    if ((p->relics_equipped & RELIC_BIT(RELIC_PATA)) && p->hp < p->max_hp && p->inv == 0) {
+        if (++p->regen_t > 720) {
+            p->regen_t = 0;
+            p->hp++;
+            audio_play_sfx(SFX_PICK);
+            particles_burst(fx_add(p->x, fx_from_int(5)), fx_add(p->y, fx_from_int(2)),
+                            PCOL_RED, 4, FX_C(1.5));
+        }
+    } else if (p->inv > 0) {
+        p->regen_t = 0;
+    }
+
     if (in->jump_pressed) p->jump_buffer = PLAYER_JUMP_BUFFER_FRAMES;
     else if (p->jump_buffer > 0) p->jump_buffer--;
 

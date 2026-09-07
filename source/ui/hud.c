@@ -21,10 +21,6 @@
 #include "../core/boss/boss_config.h"
 #include "../core/boss/boss_fsm.h"
 
-/* Duración del rótulo de zona al entrar a un nivel (2.5 s, como el
-   zoneT del prototipo). */
-#define ZONE_FRAMES 150
-
 #define BOSSBAR_COL 7
 #define BOSSBAR_W  16
 
@@ -63,6 +59,17 @@ static void draw_boss_bar(const Game *g) {
     ui_text_bar(BOSSBAR_COL, 18, BOSSBAR_W, filled, UI_RED);
 }
 
+/* Cartel: cuando Perseo pasa cerca de uno, su texto ocupa la franja de
+   abajo. Se dibuja acá y no como una pantalla aparte porque el juego no
+   se detiene, igual que en el prototipo. */
+static void draw_sign(const Game *g) {
+    if (!g->world.sign_text) return;
+    /* Cinco filas: borde, tres de texto y borde. Los carteles del nivel 1
+       llegan a tres líneas a 24 tiles de ancho. */
+    ui_text_panel(1, UI_ROWS - 6, UI_COLS - 2, 5, UI_FILL_DARK, true);
+    ui_text_wrapped(g->world.sign_text, 3, UI_ROWS - 5, UI_COLS - 6, UI_WHITE);
+}
+
 void ui_hud_draw(const Game *g) {
     /* Chapas. Van en la fila 2 y no en la 1: los corazones son sprites
        de 8 px dibujados en y=4, así que pisan las dos primeras filas de
@@ -72,10 +79,11 @@ void ui_hud_draw(const Game *g) {
 
     draw_abilities(g);
     draw_boss_bar(g);
+    draw_sign(g);
 
     /* Rótulo de zona al entrar (zoneT del prototipo). Se muestra sólo
        durante el juego normal, no encima de un cartel o un diálogo. */
-    if (g->state == GS_PLAY && g->state_t < ZONE_FRAMES && g->world.lv->name) {
+    if (g->state == GS_PLAY && g->zone_t > 0 && g->world.lv->name) {
         int w = ui_text_width(g->world.lv->name) + 4;
         int col = (UI_COLS - w) / 2;
         ui_text_panel(col, 3, w, 3, UI_FILL_DARK, false);

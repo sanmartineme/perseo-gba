@@ -62,10 +62,14 @@ void ui_title_draw(const Game *g) {
     draw_block_word("PERSEO", (UI_COLS - 23) / 2, 2, UI_YELLOW);
     ui_text_center(9, UI_WHITE, "SOMBRAS DE SILENCIO");
 
-    const char *items[3];
+    /* Cuatro opciones como mucho: CONTINUAR sólo aparece si hay partida
+       guardada, y entonces es la primera. */
+    const char *items[4];
     char sound[16];
     char diff[24];
-    items[0] = "JUGAR";
+    int n = 0;
+    if (game_has_save()) items[n++] = "CONTINUAR";
+    items[n++] = "PARTIDA NUEVA";
 
     /* Sin snprintf: concatenar dos cadenas cortas a mano cuesta menos que
        arrastrar <stdio.h> a la ROM. */
@@ -75,7 +79,7 @@ void ui_title_draw(const Game *g) {
         for (const char *s = "SONIDO: "; *s; s++) *d++ = *s;
         for (const char *s = v; *s; s++) *d++ = *s;
         *d = 0;
-        items[1] = sound;
+        items[n++] = sound;
     }
     {
         const char *v = DIFF_LABELS[g->difficulty];
@@ -83,10 +87,10 @@ void ui_title_draw(const Game *g) {
         for (const char *s = "DIFICULTAD: "; *s; s++) *d++ = *s;
         for (const char *s = v; *s; s++) *d++ = *s;
         *d = 0;
-        items[2] = diff;
+        items[n++] = diff;
     }
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < n; i++) {
         int row = 12 + i * 2;
         bool sel = (i == g->title_sel);
         int w = ui_text_width(items[i]);
@@ -103,6 +107,7 @@ void ui_title_draw(const Game *g) {
 
     /* Las pistas caben justas en 30 tiles: partirlas en dos líneas
        cortas evita que ui_text_center las recorte por los dos lados. */
-    ui_text_center(18, UI_GREY, "ARRIBA/ABAJO: ELEGIR");
-    ui_text_center(19, UI_GREY, "IZQ/DER: CAMBIAR   A: OK");
+    /* Con cuatro opciones la última cae en la fila 18, así que la ayuda
+       se reduce a una sola línea. */
+    ui_text_center(n >= 4 ? 19 : 18, UI_GREY, "ARRIBA/ABAJO  IZQ/DER  A: OK");
 }
