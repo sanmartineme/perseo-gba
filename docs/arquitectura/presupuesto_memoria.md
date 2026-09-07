@@ -1,6 +1,6 @@
 # Presupuesto de memoria y de frame
 
-Medido sobre la ROM de la Fase 9 (`build/perseo.gba`, 119.252 bytes).
+Medido sobre la ROM de la Fase 9 (`build/perseo.gba`, 119.500 bytes).
 Los números de memoria salen del ELF enlazado (`arm-none-eabi-readelf -S`,
 `nm -S`) y del reparto de VRAM que fija el código; los de tiempo, del
 medidor de frame que lleva la propia ROM
@@ -14,16 +14,17 @@ Cómo repetir las mediciones: al final, en "Cómo se reproduce esto".
 
 | Recurso | Capacidad | Usado | Libre |
 |---|---:|---:|---:|
-| ROM (cartucho) | 32 MB | 119.252 B (0,4 %) | prácticamente todo |
+| ROM (cartucho) | 32 MB | 119.500 B (0,4 %) | prácticamente todo |
 | EWRAM | 262.144 B | **0 B** | 100 % |
-| IWRAM | 32.768 B | 18.496 B (56 %) | 14.272 B menos la pila |
+| IWRAM | 32.768 B | 18.504 B (56 %) | 14.264 B menos la pila |
 | VRAM de fondos | 65.536 B | 12.640 B (19 %) | 52.896 B |
 | VRAM de sprites | 32.768 B | 9.728 B (30 %) | 23.040 B |
-| Peor frame medido | 100 % | **60,1 %** (pelea con Betty) | 39,9 % |
+| Peor frame medido | 100 % | **87,4 %** (nivel 4) | 12,6 % |
 
-Nada está cerca de su techo. La consecuencia práctica está en la sección 6:
-las optimizaciones que la Fase 9 tenía anotadas por si hacían falta **no
-hacen falta**, y hacerlas igual sólo añadiría complejidad.
+La memoria no está cerca de su techo por ningún lado. El tiempo de frame sí
+tiene un margen ajustado — 12,6 % en el peor caso — pero **no se cae ni un
+frame en ninguna de las trece escenas medidas**. La sección 6 explica qué se
+optimizó (y por qué), y qué se dejó sin optimizar con el número delante.
 
 ---
 
@@ -31,11 +32,11 @@ hacen falta**, y hacerlas igual sólo añadiría complejidad.
 
 | Sección | Bytes | Qué es |
 |---|---:|---|
-| `.text` | 29.096 | código |
+| `.text` | 29.344 | código |
 | `.rodata` | 89.252 | datos constantes |
 | `.iwram` + `.data` (copias) | 328 | se copian a IWRAM al arrancar |
-| cabecera + relleno de `gbafix` | 576 | |
-| **total** | **119.252** | |
+| cabecera + relleno de `gbafix` | 580 | |
+| **total** | **119.500** | |
 
 Los datos pesan tres veces más que el código, y dentro de los datos mandan
 los siete tilemaps:
@@ -60,9 +61,9 @@ nada. Ver sección 6.
 
 ---
 
-## 3. IWRAM — 18.496 B de 32.768
+## 3. IWRAM — 18.504 B de 32.768
 
-`.bss` + `.data` terminan en `0x03004840`. Por encima queda la pila (que crece hacia
+`.bss` + `.data` terminan en `0x03004848`. Por encima queda la pila (que crece hacia
 abajo desde `0x03007F00`) y la tabla de interrupciones.
 
 | Símbolo | Bytes | Qué es |
@@ -175,74 +176,139 @@ describe un frame que quizá nunca ocurrió.
 
 ### Recorrido de los siete niveles
 
-Perseo yendo y viniendo unos 15 s en cada nivel, con sus enemigos, sus
-carteles y su rótulo de zona.
+Perseo recorriendo cada nivel unos 20 s de verdad: corriendo, saltando,
+atacando, dasheando y lanzando la traza, con sus enemigos y sus carteles.
 
 | Nivel | Peor frame | MUNDO | TILES | OAM | UI | Frames caídos |
 |---|---:|---:|---:|---:|---:|---:|
-| 1 Túneles | 41,8 % | 11,8 | 2,1 | 9,9 | 19,8 | 0 |
-| 2 Vertedero | 51,4 % | 18,9 | 2,0 | 11,2 | 19,4 | 0 |
-| 3 Estación | 56,2 % | 20,8 | 2,0 | 11,6 | 21,8 | 0 |
-| 4 Residuos | 45,4 % | 11,5 | 0,3 | 10,2 | 23,6 | 0 |
-| 5 Madriguera | 50,8 % | 21,7 | 2,0 | 11,5 | 15,7 | 0 |
-| 6 Mercado | 34,8 % | 19,6 | 2,0 | 11,0 | 9,7 | 0 |
-| 7 Trono | 45,5 % | 19,8 | 2,0 | 11,0 | 21,3 | 0 |
+| 1 Túneles | 77,1 % | 49,7 | 19,3 | 13,1 | 24,8 | 0 |
+| 2 Vertedero | 66,9 % | 35,0 | 2,1 | 12,1 | 19,4 | 0 |
+| 3 Estación | 70,7 % | 47,4 | 2,1 | 14,0 | 21,8 | 0 |
+| **4 Residuos** | **87,4 %** | 55,4 | 18,8 | 13,7 | 22,5 | 0 |
+| 5 Madriguera | 71,7 % | 48,4 | 2,1 | 14,2 | 15,7 | 0 |
+| 6 Mercado | 83,5 % | 39,7 | 23,6 | 12,6 | 27,1 | 0 |
+| 7 Trono | 57,3 % | 25,6 | 2,1 | 11,4 | 21,3 | 0 |
 
-### Peleas de jefe
+### Las seis peleas de jefe
+
+Peleadas de verdad: en todas se le pega al jefe, y varias terminan con el
+jefe muerto y el paso abierto.
 
 | Encuentro | Peor frame | MUNDO | TILES | OAM | UI | Frames caídos |
 |---|---:|---:|---:|---:|---:|---:|
-| El Capataz (nivel 2) | 40,0 % | 22,5 | 4,6 | 12,1 | 21,2 | 0 |
-| Nivel 4 | 39,1 % | 21,8 | 2,9 | 11,8 | 19,1 | 0 |
-| **BETTY (nivel 7)** | **60,1 %** | 40,0 | 4,6 | 14,5 | 24,4 | 0 |
+| El Capataz (nivel 2) | 85,4 % | 43,4 | 24,3 | 12,3 | 23,7 | 0 |
+| Nivel 3 | 83,0 % | 40,5 | 24,3 | 12,9 | 20,7 | 0 |
+| Nivel 4 | 81,4 % | 38,6 | 24,3 | 11,8 | 19,1 | 0 |
+| Nivel 5 | 85,0 % | 42,0 | 24,3 | 12,4 | 18,8 | 0 |
+| Nivel 6 | 86,5 % | 39,7 | 26,7 | 11,9 | 18,6 | 0 |
+| BETTY (nivel 7) | 82,6 % | 46,5 | 24,3 | 13,8 | 24,4 | 0 |
 
-Betty es el peor caso medido, que es justo lo que la Fase 9 sospechaba
-(F9-07): con invocaciones y proyectiles en pantalla, MUNDO llega al 40 %
-del frame. Aun así el frame más caro de toda la campaña se queda en el
-60,1 %, y el contador de frames caídos no se movió del cero en ninguna de
-las diez escenas.
+**El peor frame de toda la campaña es el 87,4 %, en el nivel 4, y no se cae
+ni un frame en ninguna de las trece escenas.** El jefe final resultó no ser
+el peor caso: las peleas se parecen mucho entre sí (todas rondan el 85 %) y
+un nivel abierto con enemigos y el jugador pegando llega más arriba.
 
-### Lo que dicen estos números sobre F9-03 … F9-06
+MUNDO es el tramo que manda — hasta el 55,4 % — y sube justamente cuando el
+jugador ataca, dashea y lanza, porque cada golpe siembra partículas. TILES es
+barato mientras uno se limita a caminar (2,1 %) y se dispara a ~20-27 % en el
+frame concreto en que hay que rehacer el tilemap entero: al reaparecer tras
+morir y al sellarse o abrirse una arena. Ese pico está medido y acotado.
 
-Con un 40 % de margen en el peor caso, cada una de las optimizaciones
-anotadas costaría complejidad a cambio de nada medible:
+### Lo que se optimizó, porque la medición lo pidió
 
-- **F9-03 (mover física y colisión a IWRAM).** Ya están en IWRAM: `.text`
-  vive en ROM pero `.bss` entero — el tilemap, el pool, el estado — está en
-  IWRAM, que es donde importa. Mover además el código exigiría marcar
-  funciones con `__attribute__((section(".iwram")))` y compilarlas en ARM
-  en vez de Thumb, lo que las **agranda** un 30-40 %. A cambio de recortar
-  un tramo MUNDO que en el peor caso ocupa el 40 % de un frame que sobra.
-- **F9-04 (particionado espacial para la colisión).** El nivel con más
-  enemigos ya está medido y MUNDO no pasa del 21,7 % fuera de las arenas.
-  Un quadtree sobre 56 entidades es más código, más estado y más formas de
-  equivocarse que un bucle doble que cabe de sobra.
-- **F9-05 (doble buffer de OAM).** OAM nunca pasa del 14,5 %, y con el
-  reparto actual el volcado cae dentro del VBlank. El problema real de esta
-  clase **sí existía pero era de la capa de interfaz, no de OAM**, y está
-  arreglado: ver abajo.
-- **F9-06 (comprimir tilesets).** Sección 2: ahorra ~40 KB de una ROM que
-  usa el 0,4 % del cartucho.
+**El tilemap se rehacía a lo bruto ante un salto de cámara.** El streaming de
+BG2 sólo sube al hardware las columnas y filas que ENTRAN en la ventana al
+desplazarse, lo cual es correcto y barato mientras la cámara se mueva poco.
+Pero ante un salto — morir y reaparecer en la lámpara — el bucle incremental
+recorría el hueco columna por columna: cientos de columnas de las que este
+screenblock, que es de 32×32, sólo conserva las últimas 32. Todo lo demás se
+escribía para ser pisado. Medido en el nivel 1: el tramo de tiles costó el
+**153,5 %** de un frame y tiró **el único frame caído** de toda la campaña.
 
-### El problema que sí apareció: la interfaz se veía a medio pintar
+Dos cambios lo arreglaron:
 
-Buscando el coste del tramo UI salió un fallo real. El bucle arranca al
-empezar el VBlank, y el VBlank son 1.309 pasos del medidor: el 29,8 % del
-frame. Con el HUD suelto (UI ≈ 2,4 %) todo el trabajo cabía ahí dentro,
-pero una pantalla con panel — inventario, cartel, diálogo de jefe — sube el
-tramo UI a más del 20 %, el frame entero pasa del 45 % y el repintado se
-derrama sobre el VDraw. Como la interfaz se borra entera y se vuelve a
-pintar cada frame **escribiendo directamente en el screenblock**, el haz
-llegaba a leerlo a medio escribir: se capturó el panel ya pintado pero sin
-su texto, con la pantalla anterior asomando por las filas de arriba.
+1. Si la ventana nueva no toca a la vieja, no hay nada que reaprovechar y se
+   rellena la ventana directamente. Cuando sí se tocan, el trabajo queda
+   acotado solo: el desplazamiento no puede pasar del ancho de la ventana.
+   El pico bajó de 153,5 % a 53,7 % — y seguía cayéndose un frame.
+2. El relleno completo se hace ahora fila por fila resolviendo el puntero de
+   la fila una sola vez, en lugar de llamar a `level_tile_at()` en cada uno
+   de los ~760 tiles: esa llamada cruza unidad de traducción, no se puede
+   inlinear, y repite por tile las comprobaciones de borde que son iguales
+   para toda la fila. **53,7 % → 19,3 %**, y el frame caído desapareció.
 
-No era un fallo de rendimiento — no se caía ni un frame — sino de *cuándo*
-se toca la VRAM. La capa de texto ahora pinta en un buffer sombra de IWRAM
-y lo vuelca de una sola vez (320 palabras) al empezar el VBlank siguiente:
+### El fallo que sí encontró la medición: cambios de tiles que no se veían
+
+Persiguiendo el coste de TILES salieron dos fallos de la misma familia, los
+dos reales y los dos invisibles hasta que uno los busca.
+
+**Al cambiar de nivel se veía la geometría del nivel anterior.** El rango
+sincronizado son coordenadas de tile de mundo y no sabe de qué nivel son, y
+sólo se reiniciaba en `pal_video_init()`, una vez al arrancar. Como los
+niveles 2 a 7 aparecen todos en el mismo tile `[4,37]`, la ventana quedaba
+**idéntica** al entrar al nivel siguiente y no se redibujaba absolutamente
+nada: se entraba a la zona nueva, con su paleta nueva, viendo los ladrillos
+de la vieja hasta que uno caminaba lo suficiente. No se había notado antes
+porque cada nivel se probó arrancando directamente en él, que es el camino
+del primer llenado.
+
+**Y los tiles que cambian dentro de lo que ya se está viendo tampoco se
+veían.** `world_carve()` edita el tilemap en marcha — la pared que sella una
+arena, el paso que se abre al caer el jefe, una rejilla rota de un dash —
+pero BG2 sólo recibe las columnas que entran por los bordes. Comprobado
+tallando a propósito un bloque junto al jugador: sin el arreglo no aparece
+nunca; con él, aparece.
+
+Los dos se arreglan invalidando la ventana: `pal_video_reset_level_sync()` al
+cambiar de nivel, y una bandera `World.tiles_dirty` que `world_carve()` alza
+y la capa de plataforma consume. El mundo sigue sin saber cómo se dibuja,
+igual que con `WorldEvent`.
+
+### El otro fallo: la interfaz se veía a medio pintar
+
+Midiendo el tramo UI salió un tercer problema, y tampoco era de rendimiento
+sino de *cuándo* se toca la VRAM. El bucle arranca al empezar el VBlank, y el
+VBlank son 1.309 pasos del medidor: el 29,8 % del frame. Con el HUD suelto
+(UI ≈ 2,4 %) todo el trabajo cabía ahí dentro, pero una pantalla con panel —
+inventario, cartel, diálogo de jefe — sube el tramo UI a más del 20 %, el
+frame entero pasa del 45 % y el repintado se derrama sobre el VDraw. Como la
+interfaz se borra entera y se vuelve a pintar cada frame **escribiendo
+directamente en el screenblock**, el haz llegaba a leerlo a medio escribir:
+se capturó el panel ya pintado pero sin su texto, con la pantalla anterior
+asomando por las filas de arriba.
+
+La capa de texto ahora pinta en un buffer sombra de IWRAM y lo vuelca de una
+sola vez (320 palabras) al empezar el VBlank siguiente:
 [pal_gba_text.c](../../source/platform/gba/pal_gba_text.c). Cuesta 1.280
 bytes y un frame de retraso en la interfaz, imperceptible a 60 Hz.
 
----
+### Lo que se dejó SIN optimizar (F9-03 … F9-06), y por qué
+
+Con el peor frame en 87,4 % y cero frames caídos, el juego va a 60 y estas
+cuatro no compran nada hoy. El margen es de 12,6 %, no enorme, así que la
+regla práctica queda escrita abajo.
+
+- **F9-03 (mover funciones calientes a IWRAM).** El estado ya está en IWRAM
+  — el tilemap, el pool de entidades, la partida entera están en `.bss`, que
+  es lo que importa. Mover el *código* exige marcar funciones con
+  `__attribute__((section(".iwram")))` y compilarlas en ARM en vez de Thumb,
+  lo que las **agranda** un 30-40 %. Es la primera candidata si algún día
+  hace falta, porque MUNDO es el tramo que manda.
+- **F9-04 (particionado espacial de la colisión).** MUNDO llega al 55,4 %
+  con el jugador pegando, no por la colisión entidad-entidad. Un quadtree
+  sobre las entidades de un nivel es más estado y más formas de equivocarse
+  que el bucle doble actual, y atacaría la parte que no es el problema.
+- **F9-05 (doble buffer de OAM).** OAM nunca pasa del 14,2 % y no se vio
+  parpadeo. El problema real de esta familia estaba en la capa de interfaz,
+  no en OAM, y está arreglado arriba.
+- **F9-06 (comprimir tilesets).** Sección 2: ahorra ~40 KB de una ROM que
+  usa el 0,4 % del cartucho.
+
+**Cuándo volver a mirar esto.** El margen que queda es de un octavo de frame.
+Si se añade contenido — un jefe con más invocaciones, un nivel con más
+enemigos, más partículas por golpe — hay que volver a pasar el medidor antes
+de darlo por bueno. Está en la ROM de release justamente para eso: se abre
+con START+SELECT y el número que hay que mirar es "FRAMES CAIDOS".
 
 ## 7. Cómo se reproduce esto
 
@@ -289,3 +355,32 @@ desbordado más de cuatro veces, que es el caso más hostil posible para
 escribir la pantalla a destiempo, el medidor se lee perfecto. Antes del
 buffer sombra, esa misma escena salía con el panel pintado y el texto a
 medias.
+
+**Manejar el emulador desde fuera.** Las trece escenas se jugaron guiando a
+VBA-M con `SendInput` desde PowerShell y capturando la ventana con
+`PrintWindow`. Dos cosas hacen falta y ninguna es evidente:
+
+- **Las teclas no son las de fabrica.** El mapeo real vive en
+  `%LOCALAPPDATA%\visualboyadvance-m\vbam.ini` y en esta maquina es
+  **WASD + I/K/L/O**, no las flechas ni el Z/X clasico: `Up=W Down=S Left=A
+  Right=D`, `A=L B=K L=I R=O`, `Select=BACK Start=ENTER`. Vale la pena leer
+  ese archivo antes de dar por hecho nada: las flechas ni siquiera estan
+  asignadas.
+- **Hay que hacer clic en la ventana.** `SetForegroundWindow` enfoca el
+  marco, pero las teclas de letra las atiende el panel de juego de dentro,
+  que hasta que no se lo pincha no tiene el foco de teclado. Sin el clic
+  responden ENTER y BACKSPACE y nada mas — lo cual es peor que no responder
+  nada, porque parece que funciona.
+
+Ese segundo punto tuvo consecuencias reales: una primera tanda de medidas se
+tomo creyendo mover a Perseo cuando en realidad estaba quieto, y daba un peor
+caso del 60 % que no era cierto. Los numeros buenos son los de arriba, con el
+jugador corriendo y pegando de verdad — y son los que destaparon el frame
+caido y los dos fallos de tiles. **Antes de creerle a una medida, conviene
+mirar la captura y comprobar que en la pantalla esta pasando lo que uno cree
+que esta pasando.**
+
+**Y para la captura**: `SetProcessDpiAwareness(2)` antes de `PrintWindow`, o
+la imagen sale recortada a la esquina superior izquierda en cuanto Windows
+tiene escalado de pantalla distinto del 100 %. Con `powershell.exe` (5.1), no
+con `pwsh`: PowerShell 7 no trae `System.Drawing` para `Add-Type`.

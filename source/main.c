@@ -166,7 +166,18 @@ int main(void) {
         if ((int)g_game.level_index != last_level) {
             last_level = (int)g_game.level_index;
             pal_video_set_level_palette(last_level);
+            /* El tilemap de la zona anterior ya no vale: que se rellene
+               entero. Va junto a la paleta porque es el mismo motivo — lo
+               que cambia al cambiar de nivel. */
+            pal_video_reset_level_sync();
             pal_profile_level_changed();
+        }
+        /* Tiles cambiados dentro de lo que ya se ve: hay que rehacer el
+           tilemap entero, porque el camino incremental sólo cubre lo que
+           entra por los bordes. */
+        if (g_game.world.tiles_dirty) {
+            pal_video_reset_level_sync();
+            g_game.world.tiles_dirty = false;
         }
         pal_video_set_mosaic(transition_mosaic(&g_game));
         pal_video_show_sprites(!state_hides_sprites(g_game.state));

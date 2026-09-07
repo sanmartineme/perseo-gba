@@ -48,6 +48,15 @@ typedef struct Rect {
 typedef struct World {
     /* Apunta a level_rt: todo el juego lee el tilemap por acá. */
     const Level *lv;
+    /* Alguien cambió tiles con world_carve() y la pantalla todavía no se
+       enteró. El renderer sólo sube al hardware las columnas que ENTRAN
+       en la ventana al desplazarse, así que un tile que cambia dentro de
+       lo que ya se está viendo — la pared que sella una arena, el paso
+       que se abre al caer el jefe, una rejilla rota de un dash — se
+       quedaba invisible hasta que la cámara se iba y volvía. La capa de
+       plataforma lee esta bandera y la baja; el mundo no sabe cómo se
+       dibuja, igual que con WorldEvent. */
+    bool tiles_dirty;
     /* Copia mutable del nivel. Los tilemaps generados viven en ROM, pero
        el juego necesita poder cambiarlos: romper una rejilla oxidada con
        el dash, sellar la arena de un jefe, abrir el paso al vencerlo. Se

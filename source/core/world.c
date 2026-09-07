@@ -181,6 +181,7 @@ static uint8_t s_tiles[LEVEL_MAX_TILES];
 
 void world_carve(World *w, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t id) {
     level_carve(&w->level_rt, x0, y0, x1, y1, id);
+    w->tiles_dirty = true;
 }
 
 /* Al caer un jefe: se abre el paso que había sellado y aparece la puerta
@@ -229,6 +230,9 @@ void world_load(World *w, const Level *lv) {
     w->level_rt = *lv;
     w->level_rt.tiles = s_tiles;
     w->lv = &w->level_rt;
+    /* El nivel entra limpio: el cambio de nivel ya fuerza su propio
+       redibujado completo. */
+    w->tiles_dirty = false;
     w->tick = 0;
     w->shake = 0;
     w->chapas = 0;

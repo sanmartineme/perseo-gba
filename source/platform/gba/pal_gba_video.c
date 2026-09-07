@@ -107,6 +107,34 @@ static void sync_row(const Level *lv, int world_ty, int left, int right) {
     }
 }
 
+/* Rellena la ventana entera. Va aparte de sync_column() porque es el
+   camino caro — unos 760 tiles de una sentada — y el unico que se corre
+   en un frame de juego normal: cada vez que world_carve() cambia algo que
+   ya se esta viendo (una rejilla rota, el sellado de una arena).
+
+   Por eso resuelve la fila una sola vez en vez de llamar a
+   level_tile_at() por tile: esa llamada cruza unidad de traduccion, no se
+   puede inlinear, y repite en cada tile las comprobaciones de borde que
+   en realidad son iguales para toda la fila. Las tres ramas de aca
+   reproducen exactamente su criterio: fuera por arriba o por los lados es
+   roca, por debajo es vacio (se puede caer al abismo). */
+static void refill_window(const Level *lv, int left, int right, int top, int bottom) {
+    for (int ty = top; ty <= bottom; ty++) {
+        uint16_t *row = &se_mem[BG2_SBB_INDEX][(ty & MAP_MASK) * MAP_TILES];
+        if (!lv || ty < 0) {
+            for (int tx = left; tx <= right; tx++) row[tx & MAP_MASK] = SE_ID(TILE_BRICK);
+        } else if (ty >= lv->h) {
+            for (int tx = left; tx <= right; tx++) row[tx & MAP_MASK] = SE_ID(TILE_EMPTY);
+        } else {
+            const uint8_t *src = lv->tiles + (int32_t)ty * lv->w;
+            for (int tx = left; tx <= right; tx++) {
+                uint8_t t = (tx < 0 || tx >= lv->w) ? (uint8_t)TILE_BRICK : src[tx];
+                row[tx & MAP_MASK] = SE_ID(t);
+            }
+        }
+    }
+}
+
 void pal_video_init(void) {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG1 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 
@@ -158,6 +186,11 @@ void pal_video_init(void) {
     s_top = 1; s_bottom = 0;
 }
 
+void pal_video_reset_level_sync(void) {
+    s_left = 1; s_right = 0;
+    s_top = 1; s_bottom = 0;
+}
+
 void pal_video_sync_level(const Level *lv, int cam_x, int cam_y) {
     /* Ventana deseada: lo visible + 1 tile de margen a cada lado, para
        que nunca asome un tile sin sincronizar al desplazarse. */
@@ -166,9 +199,24 @@ void pal_video_sync_level(const Level *lv, int cam_x, int cam_y) {
     int new_top    = (cam_y >> 3) - 1;
     int new_bottom = ((cam_y + SCREEN_H - 1) >> 3) + 1;
 
-    if (s_left > s_right) {
-        /* Primera sincronización: no hay nada previamente válido. */
-        for (int tx = new_left; tx <= new_right; tx++) sync_column(lv, tx, new_top, new_bottom);
+    /* Si la ventana nueva no toca a la vieja, no hay nada que
+       reaprovechar y el camino incremental es una trampa: recorre el
+       hueco columna por columna, y un salto de camara puede ser de
+       cientos de columnas de las que este screenblock, que es de 32x32,
+       solo conserva las ultimas 32. Todo lo demas se escribe para ser
+       pisado. Medido en el nivel 1 al morir y reaparecer: el tramo de
+       tiles costo el 153% de un frame y tiro un frame al suelo, el unico
+       que se cayo en toda la campana.
+       Con ventanas que se tocan el trabajo ya queda acotado solo: el
+       desplazamiento no puede pasar del ancho o el alto de la ventana. */
+    bool disjoint = new_left > s_right || new_right < s_left ||
+                    new_top  > s_bottom || new_bottom < s_top;
+
+    if (s_left > s_right || disjoint) {
+        /* Llenado completo: primera sincronización, un salto de cámara que
+           no comparte nada con lo que ya estaba, o tiles cambiados dentro
+           de lo que ya se ve. */
+        refill_window(lv, new_left, new_right, new_top, new_bottom);
     } else {
         /* Primero las columnas nuevas (con el rango vertical VIEJO, que es
            el que esas columnas necesitan cubrir), y recién después las

@@ -248,52 +248,79 @@ con las instrucciones para repetirlas.** Acá va el resumen y las decisiones.
   compilado también en release, porque un contador que sólo existe en las
   builds de depuración es un contador en el que no se puede confiar.
 - [x] **F9-02** Presupuesto de memoria medido y documentado. Titulares: ROM
-  119.252 B (0,4 % del cartucho), IWRAM 18.496 de 32.768 (56 %), **EWRAM 0 de
+  119.500 B (0,4 % del cartucho), IWRAM 18.504 de 32.768 (56 %), **EWRAM 0 de
   262.144**, VRAM de fondos 19 %, de sprites 30 %. Y un dato que valía la pena
   fijar: **el gasto no cambia de un nivel a otro** — `s_tiles` está
   dimensionado al nivel más grande posible y se reserva una vez, y los siete
   niveles comparten los mismos once tiles de fondo (se distinguen por la
   paleta, decisión de la Fase 8). Queda anotada una deuda chica: 2.632 B de
   IWRAM en las salas de prueba de las Fases 1 y 2, que ya no llama nadie.
-- [~] **F9-03 … F9-06: no se hacen, y el motivo es la medición.** El peor
-  frame de toda la campaña es el **60,1 %** (Betty), con **0 frames caídos** en
-  las diez escenas medidas. Con un 40 % de margen, mover código a IWRAM lo
-  **agranda** (obliga a ARM en vez de Thumb) para recortar un tramo que sobra;
-  un particionado espacial sobre las entidades de un nivel es más estado y más
-  formas de equivocarse que el bucle doble actual; el doble buffer de OAM
-  ataca un problema que OAM no tiene (nunca pasa del 14,5 %); y comprimir
-  tilesets ahorra ~40 KB de una ROM que usa el 0,4 % del cartucho. Se dejan
-  sin hacer **a propósito y con el número delante**, no por olvido: si algún
-  día un nivel nuevo o un jefe con más invocaciones mueve el contador de
-  frames caídos, el medidor ya está puesto para decir qué tramo fue.
-- [x] **F9-07** 60 fps validados en la escena más exigente. El candidato que
-  anticipaba la tarea resultó ser el correcto: la pelea con **Betty** es el
-  peor caso medido (60,1 % del frame, con MUNDO al 40 % por las invocaciones y
-  los proyectiles), y aun así no cae un frame. Los siete niveles recorridos
-  van entre el 34,8 % y el 56,2 %.
+- [x] **F9-03 … F9-06: no se hacen, y el motivo es la medición.** El peor
+  frame de toda la campaña es el **87,4 %** (nivel 4, Residuos), con **0
+  frames caídos** en las trece escenas medidas — siete recorridos de nivel y
+  las seis peleas de jefe. Con ese margen ninguna de las cuatro compra nada
+  hoy: mover código a IWRAM lo **agranda** (obliga a ARM en vez de Thumb); un
+  particionado espacial atacaría la colisión entidad-entidad, que no es de
+  dónde sale el coste; el doble buffer de OAM ataca un problema que OAM no
+  tiene (nunca pasa del 14,2 %); y comprimir tilesets ahorra ~40 KB de una
+  ROM que usa el 0,4 % del cartucho. **Pero el margen es de un octavo de
+  frame, no enorme**: si se añade contenido hay que volver a pasar el medidor
+  antes de darlo por bueno. La primera candidata, si hiciera falta, es F9-03,
+  porque MUNDO es el tramo que manda (hasta 55,4 %).
+- [x] **F9-07** 60 fps validados. **El candidato que anticipaba la tarea
+  resultó no ser el peor caso**: las seis peleas de jefe se parecen mucho
+  entre sí (todas rondan el 85 %) y la de Betty se queda en 82,6 %, mientras
+  que un nivel abierto con enemigos y el jugador pegando llega al 87,4 %. En
+  ninguna se cae un frame.
 
-**El fallo que apareció buscando el coste de la interfaz.** Midiendo el tramo
-UI salió un problema real, y no era de rendimiento sino de *cuándo* se toca la
-VRAM. El bucle arranca al empezar el VBlank, y el VBlank son 1.309 pasos: el
-29,8 % del frame. Con el HUD suelto (UI ≈ 2,4 %) todo cabía ahí, pero una
-pantalla con panel — inventario, cartel, diálogo de jefe — sube el tramo UI a
-más del 20 %, el frame pasa del 45 % y el repintado se derrama sobre el VDraw.
-Como la interfaz se borra entera y se repinta cada frame **escribiendo directo
-en el screenblock**, el haz llegaba a leerla a medio escribir: se capturó el
-panel ya pintado pero sin su texto, con la pantalla anterior asomando por las
-filas de arriba. Ahora la capa de texto pinta en un buffer sombra de IWRAM y
-lo vuelca de una vez (320 palabras) al empezar el VBlank siguiente. Cuesta
-1.280 B y un frame de retraso en la interfaz, imperceptible a 60 Hz.
+**Tres fallos reales que encontró la medición.** Ninguno se habría visto sin
+medir, y dos de ellos no eran de rendimiento sino de *cuándo* se toca la VRAM:
+
+1. **Un frame caído al reaparecer tras morir.** El streaming de BG2 sólo sube
+   las columnas que ENTRAN en la ventana, lo cual es correcto mientras la
+   cámara se mueva poco; ante un salto recorría el hueco columna por columna,
+   cientos de columnas de las que un screenblock de 32×32 sólo conserva las
+   últimas 32. Costó el **153,5 %** de un frame. Se acotó (si la ventana
+   nueva no toca a la vieja, se rellena directo) y se abarató el relleno
+   (fila por fila, resolviendo el puntero una vez en vez de llamar a
+   `level_tile_at()` en cada uno de ~760 tiles): **153,5 % → 19,3 %**, y el
+   frame caído desapareció.
+2. **Al cambiar de nivel se veía la geometría del nivel anterior.** El rango
+   sincronizado sólo se reiniciaba al arrancar la consola, y como los niveles
+   2 a 7 aparecen todos en el mismo tile `[4,37]`, la ventana quedaba
+   idéntica y **no se redibujaba nada**: se entraba a la zona nueva, con su
+   paleta nueva, viendo los ladrillos de la vieja. No se había notado porque
+   cada nivel se probó arrancando directamente en él, que es otro camino.
+3. **Los tiles que cambian dentro de lo que ya se ve no se veían.**
+   `world_carve()` edita el tilemap en marcha — la pared que sella una arena,
+   el paso que se abre al caer el jefe, una rejilla rota de un dash — y eso
+   nunca llegaba a la pantalla. Comprobado tallando a propósito un bloque
+   junto al jugador: sin el arreglo no aparece nunca; con él, aparece.
+
+Los dos últimos se arreglan invalidando la ventana: al cambiar de nivel, y
+con una bandera `World.tiles_dirty` que `world_carve()` alza y la capa de
+plataforma consume — el mundo sigue sin saber cómo se dibuja, igual que con
+`WorldEvent`.
+
+**Y un cuarto: la interfaz se veía a medio pintar.** El bucle arranca al
+empezar el VBlank, que son 1.309 pasos (29,8 % del frame). Con el HUD suelto
+todo cabía ahí, pero una pantalla con panel sube el tramo de interfaz a más
+del 20 %, el frame pasa del 45 % y el repintado se derrama sobre el VDraw.
+Como la interfaz se borraba y repintaba entera cada frame escribiendo directo
+en el screenblock, el haz llegaba a leerla a medio escribir: el panel pintado
+pero sin su texto, con la pantalla anterior asomando arriba. Ahora la capa de
+texto pinta en un buffer sombra de IWRAM y lo vuelca de una vez al empezar el
+VBlank siguiente. 1.280 bytes y un frame de retraso.
 
 **Cómo se midió cada nivel y cada jefe sin jugar la campaña entera.** Llegar a
 la séptima arena jugando lleva una partida y no sale igual dos veces, así que
 el Makefile aprendió un enganche (`EXTRA_CFLAGS`) y `main.c` un arranque de
 medición: `make BUILD=build_prof EXTRA_CFLAGS=-DPERSEO_PROFILE_BOOT=4` empieza
 en ese nivel con las tres habilidades y el medidor a la vista, y añadiendo
-`-DPERSEO_PROFILE_ARENA` deja a Perseo delante del disparador del jefe para que
-la pelea arranque sola. Es a propósito un parámetro de build y no un parche a
-mano: los parches temporales hay que acordarse de revertirlos, y la medición
-se repite con un comando.
+`-DPERSEO_PROFILE_ARENA` deja a Perseo delante del disparador del jefe para
+que la pelea arranque sola. Es a propósito un parámetro de build y no un
+parche a mano: los parches temporales hay que acordarse de revertirlos, y la
+medición se repite con un comando.
 
 **Se comprobó que el medidor sabe fallar.** Un contador de frames caídos que
 siempre marca 0 no prueba nada, así que se compiló a propósito un derroche de
@@ -301,20 +328,26 @@ ciclos dentro del bucle: marcó **TOTAL 406,2 % y 116 frames caídos**, los dos
 en rojo. El cero de las tablas es un cero medido. (El derroche era temporal y
 no está en el fuente.)
 
-**Lo que sigue sin poder validarse acá.** La inyección de teclas al emulador
-funciona para el D-Pad, START y SELECT, pero **no para los botones A/B/L/R**:
-esta copia de VBA-M no responde a las teclas por defecto de esos cuatro ni por
-scancode ni por código virtual. Consecuencia concreta: en las peleas medidas
-Perseo se mueve y esquiva pero **no ataca**, así que el jefe cae por tiempo y
-no por daño. La carga que falta contar es la de las partículas del golpe del
-jugador — pequeña frente a las invocaciones del jefe, que sí están medidas,
-pero es una diferencia real y conviene saberla. Un playtest a mano cierra ese
-hueco y es, de todos modos, lo que pide la Fase 10.
+**Una lección que vale anotar.** Una primera tanda de medidas se tomó
+creyendo mover a Perseo cuando en realidad estaba quieto: el emulador no
+responde a las teclas de letra hasta que se hace clic en su panel de juego, y
+sin clic responden ENTER y BACKSPACE y nada más — lo cual es peor que no
+responder nada, porque parece que funciona. Aquella tanda daba un peor caso
+del 60 % que no era cierto y no vio ninguno de los cuatro fallos de arriba.
+**Antes de creerle a una medida conviene mirar la captura y comprobar que en
+la pantalla está pasando lo que uno cree.** El mapeo real de teclas y el
+detalle del clic están en la sección 7 del documento de presupuesto.
+
+**Efecto colateral bueno:** con la entrada funcionando de verdad, **las seis
+peleas de jefe se jugaron enteras** y varias terminan con el jefe muerto y el
+paso abierto — incluida la de Betty. Eso cierra de paso lo que la Fase 5
+dejó pendiente ("la secuencia completa entrada → ataques → muerte → apertura
+no se confirmó de punta a punta").
 
 **Criterio de cierre de fase:** 60 fps estables en el peor caso medido.
-*Estado real:* ✅ cumplido en las diez escenas medidas — siete recorridos de
-nivel y tres peleas de jefe, incluida la de Betty — con 0 frames caídos y un
-pico del 60,1 %. Con la salvedad de arriba sobre el ataque del jugador.
+*Estado real:* ✅ cumplido. Trece escenas medidas — siete recorridos de nivel
+y las seis peleas de jefe — con **0 frames caídos** y un pico del 87,4 %. El
+único frame que se caía está arreglado, no disimulado.
 
 ---
 

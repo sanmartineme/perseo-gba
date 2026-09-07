@@ -107,6 +107,16 @@ void pal_video_set_level_palette(int level_index);
    colarían por encima del texto. */
 void pal_video_show_sprites(bool on);
 
+/* Olvida lo que el buffer circular de BG2 tenía al día, de modo que el
+   próximo pal_video_sync_level() lo llene entero. Hay que llamarla al
+   CAMBIAR DE NIVEL: el rango sincronizado es de tiles de mundo y no sabe
+   de qué nivel son, así que sin esto el nivel nuevo hereda el rango del
+   viejo y sólo se redibuja lo que la cámara descubra al moverse. Los
+   niveles 2 a 7 aparecen todos en el mismo tile, con lo que la ventana
+   quedaba idéntica y no se redibujaba nada: se entraba al nivel nuevo
+   viendo la geometría del anterior. */
+void pal_video_reset_level_sync(void);
+
 /* ---------- Audio (Fase 6) ----------
    La interfaz de audio quedó declarada en core/audio.h (es core quien
    define QUÉ suena), así que no hay nada de audio en la PAL. */
