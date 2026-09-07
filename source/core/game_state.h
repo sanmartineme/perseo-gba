@@ -62,6 +62,9 @@ typedef struct GameInput {
     bool cancel_pressed;    /* B */
     bool start_pressed;
     bool select_pressed;
+    /* START+SELECT juntos: sólo abre el medidor de frame, y por eso
+       anula la pausa y el inventario mientras dure. */
+    bool debug_held;
 } GameInput;
 
 #define GAME_LEVEL_COUNT 7

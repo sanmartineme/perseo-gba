@@ -231,15 +231,90 @@ El extractor se validó contra los dos niveles que ya estaban escritos a mano: e
 
 ## Fase 9 — Optimización y pulido
 
-- [ ] **F9-01** Perfilar tiempo de frame por nivel/escena en mGBA (buscar frames que excedan el VBlank).
-- [ ] **F9-02** Medir uso real de VRAM/IWRAM/EWRAM por nivel y documentar en `docs/arquitectura/presupuesto_memoria.md`.
-- [ ] **F9-03** Mover a IWRAM las funciones calientes identificadas (física, colisión) vía sección de enlazado.
-- [ ] **F9-04** Si el nivel con más enemigos lo requiere: optimizar la colisión entidad-entidad (de fuerza bruta a particionado espacial).
-- [ ] **F9-05** Implementar *double buffering* de OAM si se detecta parpadeo o problemas de prioridad de sprites.
-- [ ] **F9-06** Si el presupuesto de ROM aprieta: aplicar compresión LZ77/Huffman a tilesets vía funciones de BIOS.
-- [ ] **F9-07** Validar 60 fps estables en la escena más exigente (candidato: combate final contra Betty con invocaciones + proyectiles).
+**Todas las mediciones y su detalle están en
+[docs/arquitectura/presupuesto_memoria.md](arquitectura/presupuesto_memoria.md),
+con las instrucciones para repetirlas.** Acá va el resumen y las decisiones.
+
+- [x] **F9-01** Perfilado por nivel y por escena. **Desviación: no se hizo en
+  mGBA.** Su instalador pide elevación y no se pudo instalar en esta máquina;
+  pero para la pregunta de la fase — ¿cabe el trabajo de un frame en los
+  280.896 ciclos que dura? — no hace falta un emulador con perfilador: la GBA
+  tiene cuatro temporizadores, y medir *dentro* de la ROM tiene la ventaja de
+  que el número sale del mismo código que correría en el cartucho. TIMER3 con
+  preescala 64 da 4.389 pasos por frame y una resolución del 0,02 %. El bucle
+  queda partido en cuatro tramos (mundo, tiles, OAM, interfaz) y hay un
+  contador de **frames caídos**, que es la respuesta sin interpretación: si es
+  0, va a 60. Se ve en la ROM normal manteniendo **START+SELECT**; está
+  compilado también en release, porque un contador que sólo existe en las
+  builds de depuración es un contador en el que no se puede confiar.
+- [x] **F9-02** Presupuesto de memoria medido y documentado. Titulares: ROM
+  119.252 B (0,4 % del cartucho), IWRAM 18.496 de 32.768 (56 %), **EWRAM 0 de
+  262.144**, VRAM de fondos 19 %, de sprites 30 %. Y un dato que valía la pena
+  fijar: **el gasto no cambia de un nivel a otro** — `s_tiles` está
+  dimensionado al nivel más grande posible y se reserva una vez, y los siete
+  niveles comparten los mismos once tiles de fondo (se distinguen por la
+  paleta, decisión de la Fase 8). Queda anotada una deuda chica: 2.632 B de
+  IWRAM en las salas de prueba de las Fases 1 y 2, que ya no llama nadie.
+- [~] **F9-03 … F9-06: no se hacen, y el motivo es la medición.** El peor
+  frame de toda la campaña es el **60,1 %** (Betty), con **0 frames caídos** en
+  las diez escenas medidas. Con un 40 % de margen, mover código a IWRAM lo
+  **agranda** (obliga a ARM en vez de Thumb) para recortar un tramo que sobra;
+  un particionado espacial sobre las entidades de un nivel es más estado y más
+  formas de equivocarse que el bucle doble actual; el doble buffer de OAM
+  ataca un problema que OAM no tiene (nunca pasa del 14,5 %); y comprimir
+  tilesets ahorra ~40 KB de una ROM que usa el 0,4 % del cartucho. Se dejan
+  sin hacer **a propósito y con el número delante**, no por olvido: si algún
+  día un nivel nuevo o un jefe con más invocaciones mueve el contador de
+  frames caídos, el medidor ya está puesto para decir qué tramo fue.
+- [x] **F9-07** 60 fps validados en la escena más exigente. El candidato que
+  anticipaba la tarea resultó ser el correcto: la pelea con **Betty** es el
+  peor caso medido (60,1 % del frame, con MUNDO al 40 % por las invocaciones y
+  los proyectiles), y aun así no cae un frame. Los siete niveles recorridos
+  van entre el 34,8 % y el 56,2 %.
+
+**El fallo que apareció buscando el coste de la interfaz.** Midiendo el tramo
+UI salió un problema real, y no era de rendimiento sino de *cuándo* se toca la
+VRAM. El bucle arranca al empezar el VBlank, y el VBlank son 1.309 pasos: el
+29,8 % del frame. Con el HUD suelto (UI ≈ 2,4 %) todo cabía ahí, pero una
+pantalla con panel — inventario, cartel, diálogo de jefe — sube el tramo UI a
+más del 20 %, el frame pasa del 45 % y el repintado se derrama sobre el VDraw.
+Como la interfaz se borra entera y se repinta cada frame **escribiendo directo
+en el screenblock**, el haz llegaba a leerla a medio escribir: se capturó el
+panel ya pintado pero sin su texto, con la pantalla anterior asomando por las
+filas de arriba. Ahora la capa de texto pinta en un buffer sombra de IWRAM y
+lo vuelca de una vez (320 palabras) al empezar el VBlank siguiente. Cuesta
+1.280 B y un frame de retraso en la interfaz, imperceptible a 60 Hz.
+
+**Cómo se midió cada nivel y cada jefe sin jugar la campaña entera.** Llegar a
+la séptima arena jugando lleva una partida y no sale igual dos veces, así que
+el Makefile aprendió un enganche (`EXTRA_CFLAGS`) y `main.c` un arranque de
+medición: `make BUILD=build_prof EXTRA_CFLAGS=-DPERSEO_PROFILE_BOOT=4` empieza
+en ese nivel con las tres habilidades y el medidor a la vista, y añadiendo
+`-DPERSEO_PROFILE_ARENA` deja a Perseo delante del disparador del jefe para que
+la pelea arranque sola. Es a propósito un parámetro de build y no un parche a
+mano: los parches temporales hay que acordarse de revertirlos, y la medición
+se repite con un comando.
+
+**Se comprobó que el medidor sabe fallar.** Un contador de frames caídos que
+siempre marca 0 no prueba nada, así que se compiló a propósito un derroche de
+ciclos dentro del bucle: marcó **TOTAL 406,2 % y 116 frames caídos**, los dos
+en rojo. El cero de las tablas es un cero medido. (El derroche era temporal y
+no está en el fuente.)
+
+**Lo que sigue sin poder validarse acá.** La inyección de teclas al emulador
+funciona para el D-Pad, START y SELECT, pero **no para los botones A/B/L/R**:
+esta copia de VBA-M no responde a las teclas por defecto de esos cuatro ni por
+scancode ni por código virtual. Consecuencia concreta: en las peleas medidas
+Perseo se mueve y esquiva pero **no ataca**, así que el jefe cae por tiempo y
+no por daño. La carga que falta contar es la de las partículas del golpe del
+jugador — pequeña frente a las invocaciones del jefe, que sí están medidas,
+pero es una diferencia real y conviene saberla. Un playtest a mano cierra ese
+hueco y es, de todos modos, lo que pide la Fase 10.
 
 **Criterio de cierre de fase:** 60 fps estables en el peor caso medido.
+*Estado real:* ✅ cumplido en las diez escenas medidas — siete recorridos de
+nivel y tres peleas de jefe, incluida la de Betty — con 0 frames caídos y un
+pico del 60,1 %. Con la salvedad de arriba sobre el ataque del jugador.
 
 ---
 

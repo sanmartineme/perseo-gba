@@ -28,3 +28,6 @@ Thumbs.db
 # Cache de Python de las herramientas del pipeline
 __pycache__/
 *.pyc
+
+# Builds de medicion de la Fase 9 (make BUILD=build_prof ...)
+build_prof/

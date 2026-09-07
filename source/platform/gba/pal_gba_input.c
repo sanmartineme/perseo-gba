@@ -36,3 +36,7 @@ bool pal_input_left_pressed(void)  { return key_hit(KEY_LEFT)  != 0; }
 bool pal_input_right_pressed(void) { return key_hit(KEY_RIGHT) != 0; }
 bool pal_input_confirm_pressed(void) { return key_hit(KEY_A) != 0; }
 bool pal_input_cancel_pressed(void)  { return key_hit(KEY_B) != 0; }
+
+bool pal_input_debug_held(void) {
+    return key_is_down(KEY_START) && key_is_down(KEY_SELECT);
+}

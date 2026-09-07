@@ -64,6 +64,32 @@ static const uint16_t UI_RGB[UI_COLOR_COUNT] = {
 static bool s_ready = false;
 
 /* ---------------------------------------------------------------------
+   Buffer sombra de la capa de interfaz
+   ---------------------------------------------------------------------
+   La UI se borra y se vuelve a pintar entera cada frame. Mientras se
+   escribia directamente en el screenblock, ese repintado era visible: el
+   bucle arranca al empezar el VBlank, y el VBlank son 1.309 pasos del
+   medidor de la Fase 9 (el 29,8% del frame). Con el HUD suelto todo el
+   trabajo cabia ahi, pero una pantalla con panel — inventario, cartel,
+   dialogo de jefe — sube el tramo de UI del 2,4% a ~25%, el frame entero
+   se va al 45% y el repintado se derrama sobre el VDraw. Entonces el haz
+   lee el screenblock a medio escribir y sale lo que se capturo probando:
+   el panel ya pintado pero sin su texto, con la pantalla anterior asomando
+   por las filas de arriba.
+
+   La solucion es no escribir en VRAM mientras se dibuja: put_tile() pinta
+   en este buffer de IWRAM y ui_text_flush() lo vuelca de una sola vez al
+   empezar el VBlank siguiente. Son 320 palabras — un pestaneo dentro del
+   VBlank — y ademas sale mas barato, porque escribir en VRAM con el
+   display activo hace esperar a la CPU y en IWRAM no.
+
+   Cuesta 1.280 bytes y un frame de retraso en la interfaz, que a 60 Hz no
+   se percibe. Solo las 20 filas visibles: BG0 no hace scroll, asi que las
+   12 de abajo del screenblock no se ven nunca.
+   --------------------------------------------------------------------- */
+static uint16_t s_shadow[UI_ROWS * 32];
+
+/* ---------------------------------------------------------------------
    Fuente: sys8Glyphs de libtonc son 96 glifos de 8x8 en 1 bpp, dos
    palabras por glifo (4 filas en cada una, un byte por fila). Acá se
    expanden a tiles de 4 bpp con el índice de color 1, que es el que
@@ -120,7 +146,14 @@ void ui_text_init(void) {
     REG_BG3VOFS = 0;
     ui_text_dim(0);
     s_ready = true;
+    /* El screenblock entero una vez: las 12 filas de abajo no se ven,
+       pero tampoco las repinta nadie, asi que si arrancaran con basura
+       se quedarian con ella. De ahi en mas solo se vuelcan las 20 de
+       arriba, que son las que cambian. */
+    uint32_t blank = SE_ID(TILE_BLANK);
+    memset32(se_mem[UI_SBB], blank | (blank << 16), (32 * 32) / 2);
     ui_text_clear();
+    ui_text_flush();
     ui_text_visible(true);
 }
 
@@ -155,9 +188,23 @@ void ui_text_visible(bool on) {
 
 void ui_text_clear(void) {
     if (!s_ready) return;
-    /* El screenblock es de 32x32 aunque la pantalla sean 30x20: se borra
-       entero para que no quede basura si algo escribe fuera de vista. */
-    for (int i = 0; i < 32 * 32; i++) se_mem[UI_SBB][i] = SE_ID(TILE_BLANK);
+    /* La capa de UI se rehace entera cada frame, asi que este borrado
+       estaba en el camino caliente: 1024 escrituras de 16 bits, y medido
+       era el tramo mas caro del frame.
+       Dos cambios, los dos por la misma razon (escribir menos veces):
+       - Solo las 20 filas visibles. El screenblock tiene 32, pero las 12
+         de abajo no se ven nunca (BG0 no hace scroll) y ui_text_init()
+         ya las dejo en blanco de una vez. Las filas son contiguas, de
+         modo que las 20 primeras son un unico bloque de 640 entradas.
+       - De a palabra en vez de a media palabra: 320 escrituras de 32
+         bits en lugar de 640 de 16. */
+    uint32_t blank = SE_ID(TILE_BLANK);
+    memset32(s_shadow, blank | (blank << 16), (UI_ROWS * 32) / 2);
+}
+
+void ui_text_flush(void) {
+    if (!s_ready) return;
+    memcpy32(se_mem[UI_SBB], s_shadow, (UI_ROWS * 32) / 2);
 }
 
 void ui_text_clear_rect(int col, int row, int w, int h) {
@@ -166,7 +213,7 @@ void ui_text_clear_rect(int col, int row, int w, int h) {
 
 static inline void put_tile(int col, int row, uint16_t tile, int palbank) {
     if (col < 0 || col >= UI_COLS || row < 0 || row >= UI_ROWS) return;
-    se_mem[UI_SBB][row * 32 + col] = SE_ID(tile) | SE_PALBANK(palbank);
+    s_shadow[row * 32 + col] = SE_ID(tile) | SE_PALBANK(palbank);
 }
 
 /* ---------------------------------------------------------------------

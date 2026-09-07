@@ -54,6 +54,10 @@ bool pal_input_right_pressed(void);
 bool pal_input_confirm_pressed(void);
 bool pal_input_cancel_pressed(void);
 
+/* START+SELECT a la vez: combinacion de depuracion, imposible de
+   pulsar sin querer, que muestra el medidor de frame de la Fase 9. */
+bool pal_input_debug_held(void);
+
 /* ---------- Vídeo (Fase 2) -----------------------------------------
    Modo 0 (4 capas tiled, sin rotación/escala — ver docs/PLAN_MIGRACION_GBA_C.md,
    sección 2): BG2 es el tilemap colisionable del nivel, BG1 una capa de
@@ -106,6 +110,37 @@ void pal_video_show_sprites(bool on);
 /* ---------- Audio (Fase 6) ----------
    La interfaz de audio quedó declarada en core/audio.h (es core quien
    define QUÉ suena), así que no hay nada de audio en la PAL. */
+
+/* ---------- Perfilado (Fase 9) ----------
+   Reparto del trabajo de un frame en cuatro tramos, para saber no sólo
+   si cabe sino QUE parte no cabria si dejara de caber. Ver
+   source/platform/gba/pal_gba_profile.c. */
+typedef enum PalProfileSlot {
+    PAL_PROF_UPDATE = 0,  /* mundo, física, IA, audio */
+    PAL_PROF_TILES,       /* streaming del tilemap de fondo */
+    PAL_PROF_SPRITES,     /* volcado de OAM */
+    PAL_PROF_UI,          /* capa de texto */
+    PAL_PROFILE_COUNT
+} PalProfileSlot;
+
+void pal_profile_frame_start(void);
+void pal_profile_mark(PalProfileSlot slot);
+/* `worst` = el peor valor visto desde el ultimo reset, que es el numero
+   que importa: un promedio bonito con un pico que se pasa del frame se
+   ve igual de mal en pantalla. */
+uint16_t pal_profile_ticks(PalProfileSlot slot, bool worst);
+/* Con worst=true devuelve el peor frame COMPLETO que se vio, no la suma
+   de los peores de cada tramo: esos maximos pueden venir de frames
+   distintos y sumarlos describe un frame que quiza nunca ocurrio. */
+uint16_t pal_profile_total(bool worst);
+int      pal_profile_percent(uint16_t ticks);
+void     pal_profile_reset_worst(void);
+/* Reinicia las marcas y concede unos frames de cortesia: el primero de
+   un nivel llena el tilemap entero y no representa al juego en marcha. */
+void     pal_profile_level_changed(void);
+/* Frames cuyo trabajo NO cupo en su frame. Es la respuesta directa a
+   "¿va a 60?": si es 0, va a 60. */
+uint16_t pal_profile_overruns(void);
 
 /* ---------- Guardado (Fase 7) ---------- */
 bool pal_save_read(void *dst, uint32_t size);

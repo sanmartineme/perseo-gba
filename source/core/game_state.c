@@ -378,6 +378,7 @@ static void update_play(Game *g, const GameInput *in) {
         enter(g, GS_DEAD);
         return;
     }
+    if (in->debug_held) return;
     if (in->start_pressed) { audio_play_sfx(SFX_CHECK); enter(g, GS_PAUSE); }
     else if (in->select_pressed) { audio_play_sfx(SFX_CHECK); enter(g, GS_INVENTORY); }
 }

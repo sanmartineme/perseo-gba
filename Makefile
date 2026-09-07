@@ -67,6 +67,17 @@ CFLAGS   := -g -Wall -O2 -mcpu=arm7tdmi -mtune=arm7tdmi $(ARCH) \
 LDFLAGS  := -g $(ARCH) -specs=gba.specs -Wl,-Map,$(BUILD)/$(TARGET).map
 LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
+# Enganche para builds de medicion (Fase 9). Permite compilar la MISMA ROM
+# con banderas extra sin tocar el fuente ni dejar codigo temporal que luego
+# haya que acordarse de revertir:
+#
+#   make BUILD=build_prof EXTRA_CFLAGS=-DPERSEO_PROFILE_BOOT=4
+#
+# Conviene darle su propio BUILD: los .o no se recompilan por cambiar una
+# bandera (make solo mira fechas), asi que reutilizar build/ mezclaria
+# objetos compilados con y sin la bandera.
+CFLAGS += $(EXTRA_CFLAGS)
+
 #---------------------------------------------------------------------------------
 # TMP/TEMP explícitos para el compilador. Sin esto, en algunos entornos Windows
 # arm-none-eabi-gcc intenta escribir sus archivos temporales en C:\WINDOWS y

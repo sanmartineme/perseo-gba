@@ -60,6 +60,12 @@ void ui_text_dim(int strength);
 
 /* Borra la capa entera (deja ver el juego). */
 void ui_text_clear(void);
+/* Vuelca al hardware lo dibujado desde el ultimo volcado. Va llamado al
+   principio del frame, dentro del VBlank: pintar la interfaz lleva mas
+   que el VBlank en las pantallas con panel, y escribirla directo en VRAM
+   dejaba ver el repintado a medias. Ver el buffer sombra en
+   source/platform/gba/pal_gba_text.c. */
+void ui_text_flush(void);
 /* Borra sólo un rectángulo, en tiles. */
 void ui_text_clear_rect(int col, int row, int w, int h);
 

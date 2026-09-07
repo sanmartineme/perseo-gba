@@ -27,6 +27,7 @@
 #include "platform/pal.h"
 #include "ui/text.h"
 #include "ui/screens.h"
+#include "ui/profile.h"
 
 /* Estados en los que el mundo no se ve y los sprites sólo estorbarían
    por encima del texto. */
@@ -50,6 +51,59 @@ static int transition_mosaic(const Game *g) {
 
 static Game g_game;
 
+/* --- Build de medicion (F9-01) -------------------------------------
+   `make BUILD=build_prof EXTRA_CFLAGS=-DPERSEO_PROFILE_BOOT=4` arranca
+   directo en ese nivel, con las tres habilidades y el medidor de frame
+   siempre a la vista. Existe porque medir un nivel de los siete exigia
+   llegar jugando hasta el, y una partida entera no sale igual dos veces;
+   asi la medicion se repite con un comando en vez de con un parche a mano
+   que despues hay que acordarse de revertir.
+   No entra en la ROM normal: sin la bandera, esto no existe. */
+#ifdef PERSEO_PROFILE_BOOT
+/* Con -DPERSEO_PROFILE_ARENA ademas deja a Perseo delante del disparador
+   del jefe, de modo que la pelea arranca sola a los pocos frames. Es lo
+   que hace medible F9-07 (el peor caso candidato es un combate de jefe):
+   llegar a una arena jugando lleva minutos y no sale igual dos veces. */
+#ifdef PERSEO_PROFILE_ARENA
+static void profile_goto_arena(Game *g) {
+    const Level *lv = g->world.lv;
+    for (int i = 0; i < lv->entity_count; i++) {
+        const LevelEntitySpawn *sp = &lv->entities[i];
+        if (sp->type != ENT_BOSSGATE) continue;
+        /* update_bossgate() exige estar a la izquierda de la puerta y
+           dentro de su franja vertical; se apunta al centro de la franja
+           y a cuatro tiles de la puerta, con margen de sobra. */
+        int16_t ty = (int16_t)(((sp->yband[0] + sp->yband[1]) / 2) / TILE_SIZE);
+        world_place_player(&g->world, (int16_t)(sp->tx - 4), ty);
+        camera_update(&g->cam, g->world.player.x, g->world.player.y, lv);
+        return;
+    }
+}
+#endif
+
+static void profile_boot(Game *g) {
+    g->progress.ab.double_jump = true;
+    g->progress.ab.dash = true;
+    g->progress.ab.climb = true;
+    game_load_level(g, (uint8_t)PERSEO_PROFILE_BOOT);
+    g->state = GS_PLAY;
+    g->state_t = 0;
+#ifdef PERSEO_PROFILE_ARENA
+    profile_goto_arena(g);
+#endif
+}
+#endif
+
+/* El medidor se ve manteniendo START+SELECT, salvo en una build de
+   medicion, donde esta siempre puesto. */
+static bool profile_visible(void) {
+#ifdef PERSEO_PROFILE_BOOT
+    return true;
+#else
+    return pal_input_debug_held();
+#endif
+}
+
 int main(void) {
     irq_init(NULL);
     irq_enable(II_VBLANK);
@@ -58,9 +112,19 @@ int main(void) {
     ui_text_init();
     audio_init();
     game_init(&g_game);
+#ifdef PERSEO_PROFILE_BOOT
+    profile_boot(&g_game);
+#endif
 
     while (1) {
         VBlankIntrWait();
+        pal_profile_frame_start();
+        /* Lo primero del VBlank: subir al hardware la interfaz que se
+           dibujo en el frame anterior. Tiene que ser aca y no al pintarla
+           — ver el buffer sombra en pal_gba_text.c. Se contabiliza en el
+           tramo de interfaz, que es de donde sale el trabajo. */
+        ui_text_flush();
+        pal_profile_mark(PAL_PROF_UI);
 
         pal_input_poll();
         GameInput in = {
@@ -81,10 +145,12 @@ int main(void) {
             .cancel_pressed = pal_input_cancel_pressed(),
             .start_pressed = pal_input_start_pressed(),
             .select_pressed = pal_input_select_pressed(),
+            .debug_held = pal_input_debug_held(),
         };
 
         game_update(&g_game, &in);
         audio_update();
+        pal_profile_mark(PAL_PROF_UPDATE);
 
         const World *w = &g_game.world;
         int cam_x = fx_to_int(g_game.cam.x), cam_y = fx_to_int(g_game.cam.y);
@@ -100,13 +166,23 @@ int main(void) {
         if ((int)g_game.level_index != last_level) {
             last_level = (int)g_game.level_index;
             pal_video_set_level_palette(last_level);
+            pal_profile_level_changed();
         }
         pal_video_set_mosaic(transition_mosaic(&g_game));
         pal_video_show_sprites(!state_hides_sprites(g_game.state));
         pal_video_sync_level(w->lv, cam_x, cam_y);
         pal_video_set_parallax_scroll(cam_x, cam_y);
+        pal_profile_mark(PAL_PROF_TILES);
+
         pal_video_draw_world(w, cam_x, cam_y);
+        pal_profile_mark(PAL_PROF_SPRITES);
+
         ui_screens_draw(&g_game);
+        pal_profile_mark(PAL_PROF_UI);
+        /* El medidor se dibuja DESPUES de cerrar el tramo de interfaz, a
+           propósito: así los números que muestra describen la ROM tal
+           como se juega, sin contar el coste de estarla mirando. */
+        if (profile_visible()) ui_profile_draw();
     }
 
     return 0;
