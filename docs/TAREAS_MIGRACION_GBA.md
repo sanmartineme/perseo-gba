@@ -353,13 +353,59 @@ y las seis peleas de jefe — con **0 frames caídos** y un pico del 87,4 %. El
 
 ## Fase 10 — QA y empaquetado final
 
-- [ ] **F10-01** Redactar y ejecutar `tests/playtest_checklist.md` completo.
-- [ ] **F10-02** Validar en hardware real con flashcart.
-- [ ] **F10-03** Ajustes finales de balance según resultados del playtest.
-- [ ] **F10-04** Ejecutar `gbafix` sobre el binario final.
-- [ ] **F10-05** Generar el build de release y etiquetar la versión (tag de git + notas de versión).
+- [~] **F10-01** [tests/playtest_checklist.md](../tests/playtest_checklist.md)
+  redactado y **ejecutado hasta donde se puede sin manos**. Cada punto lleva
+  cómo se comprobó: *auto* (guiando el emulador y mirando la captura), *datos*
+  (sobre el binario o los `.json`) o *mano*. Verificado en automático: el
+  arranque y el título, la cinemática, los siete niveles cargando y
+  recorriéndose con su paleta, correr/saltar/doble salto/dash/atacar/lanzar,
+  los seis encuentros de jefe arrancando y recibiendo daño — dos de ellos
+  hasta matar al jefe y abrir el paso — el inventario, la muerte y el
+  reaparecer, el cambio de nivel, y 0 frames caídos.
 
-**Criterio de cierre de fase:** ROM final validada en hardware real, lista para distribución/uso.
+  **Lo que queda es de una clase que no se automatiza.** Guiar el emulador
+  sirve para llegar a una pantalla y disparar una interacción; no sirve para
+  plataformear, porque un salto encadenado que hay que clavar no sale con un
+  guion a ciegas (se intentó llegar al desenlace matando a Betty y Perseo
+  murió antes). Todo lo que dependa de recorrer un nivel entero, de que el
+  juego se *sienta* bien, del equilibrio, o de oír el sonido, está marcado
+  *mano* a propósito.
+- [ ] **F10-02** Validar en hardware real con flashcart. **No se puede hacer
+  desde aquí**: hace falta el cartucho y la consola. Queda como el primer
+  punto de la lista para quien tenga el equipo. Importa más de lo que parece
+  por un motivo concreto: la pantalla de la GBA original no está
+  retroiluminada y es mucho más oscura que cualquier emulador, y este juego
+  transcurre entero en cloacas — es el tipo de cosa que sólo se ve en la
+  consola.
+- [ ] **F10-03** Ajustes de balance. **Bloqueado por F10-01/F10-02**, y a
+  propósito: tocar el equilibrio sin haber jugado la partida sería inventar.
+  Lo que hay medido dice que el motor aguanta; si el juego es *justo* es otra
+  pregunta, y la contesta el playtest.
+- [x] **F10-04** `gbafix` ya corría en el Makefile; lo que faltaba era
+  comprobar que deja bien la cabecera, y se comprobó sobre el binario:
+  título `PERSEO`, código `APSE`, maker `00`, byte fijo `0x96`, **checksum
+  válido** (0xFA calculado = 0xFA en la cabecera) y logo de Nintendo
+  presente. De paso se verificó la etiqueta **`SRAM_V113`** en la ROM, sin
+  ninguna de EEPROM o FLASH que compita: es la cadena por la que los
+  emuladores deciden qué memoria de guardado emular, y en la Fase 7 costó
+  que sobreviviera al `--gc-sections` del enlazador.
+- [x] **F10-05** Build de release y versión etiquetada. La ROM salió de un
+  `build/` borrado del todo, para que no arrastre nada de las builds de
+  medición: **119.500 bytes, MD5 `ba919048dc348e5826042147860064af`**.
+  Notas en [docs/NOTAS_VERSION.md](NOTAS_VERSION.md) y etiqueta de git
+  **`v1.0-rc1`**.
+
+  **Es una candidata y no la 1.0, a propósito.** Llamar 1.0 a una ROM que
+  nadie ha jugado entera ni ha visto correr en una consola sería ponerle a la
+  etiqueta un significado que no tiene. La 1.0 sale cuando F10-01 y F10-02
+  estén hechos.
+
+**Criterio de cierre de fase:** ROM final validada en hardware real, lista
+para distribución/uso. *Estado real:* ⚠️ **no cumplido, y no puede cumplirse
+desde aquí.** Lo que depende del código está hecho y medido; lo que queda
+depende de una persona con un mando y de una consola con un flashcart. Es la
+única fase del port cuyo criterio de cierre está fuera del alcance de quien
+la escribió, y conviene que quede dicho así y no disimulado con un tick.
 
 ---
 
