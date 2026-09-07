@@ -21,6 +21,8 @@
 #include "fixed.h"
 #include "level/level.h"
 
+struct World;
+
 typedef struct PlayerAbilities {
     bool double_jump;
     bool dash;
@@ -43,8 +45,16 @@ typedef struct Player {
     int8_t dash_t;         /* frames restantes del dash actual (0 = no dasheando) */
     int8_t dash_cd;        /* frames de cooldown restantes */
 
-    bool walking;           /* bandera para el ciclo de caminata (arte real en Fase 3) */
+    bool walking;           /* bandera para el ciclo de caminata */
     uint16_t walk_anim;
+
+    /* --- Vida y combate (Fase 4) --- */
+    int16_t hp, max_hp;
+    int16_t inv;            /* frames de invulnerabilidad tras recibir daño */
+    bool dead;
+    int8_t atk_t, atk_cd;   /* Ganchito Mortal: duración y enfriamiento */
+    uint16_t swing;         /* id del zarpazo actual, para no golpear dos veces */
+    int8_t throw_t, throw_cd; /* Lanzamiento de Traza */
 
     PlayerAbilities ab;
 } Player;
@@ -57,10 +67,14 @@ typedef struct PlayerInput {
     bool jump_held;                /* estado sostenido del botón de salto */
     bool jump_pressed;             /* flanco de subida (para el jump buffer) */
     bool dash_pressed;             /* flanco de subida */
+    bool attack_pressed;           /* flanco de subida: Ganchito Mortal */
+    bool throw_pressed;            /* flanco de subida: Lanzamiento de Traza */
 } PlayerInput;
 
 void player_init(Player *p, fx_t spawn_x, fx_t spawn_y);
-void player_update(Player *p, const Level *lv, const PlayerInput *in);
+/* Recibe el mundo, no sólo el nivel: el combate necesita poder herir
+   enemigos y lanzar proyectiles. */
+void player_update(Player *p, struct World *w, const PlayerInput *in);
 
 /* ---------- Animación ----------
    Índices de frame en la hoja de Perseo (assets/src/sprites/perseo/perseo.png).

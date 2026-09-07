@@ -1,0 +1,27 @@
+{
+  "frame_size": [
+    16,
+    16
+  ],
+  "bank": "enemies",
+  "frames": [
+    "thug1",
+    "thug2",
+    "brute1",
+    "brute2"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "C",
+    "2": "G",
+    "3": "H",
+    "4": "K",
+    "5": "N",
+    "6": "R",
+    "7": "W",
+    "8": "Y",
+    "9": "n",
+    "10": "p",
+    "11": "r"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "frame_size": [
+    16,
+    8
+  ],
+  "bank": "enemies",
+  "frames": [
+    "rat1",
+    "rat2",
+    "gunner1",
+    "gunner2"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "C",
+    "2": "G",
+    "3": "H",
+    "4": "K",
+    "5": "N",
+    "6": "R",
+    "7": "W",
+    "8": "Y",
+    "9": "n",
+    "10": "p",
+    "11": "r"
+  }
+}

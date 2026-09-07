@@ -41,6 +41,8 @@ void entity_pool_free(Entity *e) {
 
 int entity_pool_count(void) { return s_count; }
 
+Entity *entity_pool_at(int index) { return &s_pool[index]; }
+
 void entity_pool_for_each(EntityVisitor visit, void *ctx) {
     for (int i = 0; i < ENTITY_POOL_CAPACITY; i++) {
         if (s_used[i]) {

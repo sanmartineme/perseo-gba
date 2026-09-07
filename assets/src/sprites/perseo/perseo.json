@@ -3,6 +3,7 @@
     16,
     16
   ],
+  "bank": "perseo",
   "frames": [
     "p_idle1",
     "p_idle2",

@@ -35,13 +35,26 @@ typedef enum EntityType {
 typedef struct Entity {
     EntityType type;
     bool alive;
+    bool started;    /* ya corrió su inicialización perezosa (el
+                        "if (e.dir===undefined)" del prototipo, que hacía
+                        falta porque las entidades nacen sólo con posición) */
     fx_t x, y;       /* posición en píxeles, Q8.8 */
     fx_t vx, vy;     /* velocidad en píxeles/frame, Q8.8 */
+    fx_t home_x, home_y; /* posición de origen: la usan los enemigos
+                            voladores para orbitar y volver a su puesto */
     int16_t w, h;    /* caja de colisión, en píxeles enteros */
-    int8_t face;     /* -1 o 1 */
+    int8_t face;     /* -1 o 1: hacia dónde mira */
+    int8_t dir;      /* -1 o 1: dirección de patrulla */
     int16_t hp;
     int16_t state;   /* estado de FSM propio de cada tipo (enemigo/jefe) */
-    int16_t timer;   /* contador de frames genérico para temporizadores */
+    int16_t timer;   /* contador de frames genérico */
+    int16_t cooldown;/* segundo contador: cadencia de tiro, respiro tras embestir */
+    int16_t flash;   /* frames restantes de destello blanco al ser golpeado */
+    int16_t param;   /* dato que viene de los datos del nivel (LevelEntitySpawn) */
+    bool friendly;   /* proyectiles: true si lo lanzó Perseo */
+    uint16_t hit_swing; /* id del último zarpazo que ya le pegó: impide que
+                           un mismo golpe cuente varias veces (el
+                           e.hitSwing del prototipo) */
 } Entity;
 
 #endif /* PERSEO_CORE_ENTITY_H */

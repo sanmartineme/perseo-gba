@@ -10,11 +10,14 @@
    source/platform/gba/pal_gba_video.c), BG1 una capa de paralaje, y el
    jugador un sprite OBJ de hardware.
 
-   Fase 3 (docs/TAREAS_MIGRACION_GBA.md, F3-10..F3-13): se cambian las
-   salas de prueba por el **Nivel 1 real** (Túneles de Filtración,
-   200x44 tiles, generado desde assets/src/levels/level01.json) y los
-   placeholders de color sólido por el arte de verdad: el tileset del
-   nivel y los 12 frames de animación de Perseo.
+   Fase 3: el Nivel 1 real (Túneles de Filtración, 200x44 tiles,
+   generado desde assets/src/levels/level01.json) con el arte de verdad
+   del prototipo.
+
+   Fase 4 (docs/TAREAS_MIGRACION_GBA.md, F4-01..F4-15): el nivel ya se
+   puebla con sus enemigos y objetos. Este archivo queda mínimo a
+   propósito: todo el juego vive en core/world.c, y acá sólo se
+   traducen botones a intenciones y se pide dibujar.
 
    NOTA de arquitectura: este archivo sigue siendo el único con permiso
    para incluir <tonc.h>. Toda la física (source/core/player.c) y la
@@ -27,6 +30,7 @@
 #include "core/level/level01_tuneles.h"
 #include "core/camera.h"
 #include "core/player.h"
+#include "core/world.h"
 #include "platform/pal.h"
 
 int main(void) {
@@ -35,22 +39,17 @@ int main(void) {
 
     pal_video_init();
 
-    const Level *lv = &level01_tuneles;
+    World world;
+    world_load(&world, &level01_tuneles);
 
-    Player player;
-    player_init(&player,
-                fx_from_int((int32_t)lv->spawn_tx * TILE_SIZE),
-                fx_from_int((int32_t)lv->spawn_ty * TILE_SIZE));
-    /* Debug: habilidades forzadas hasta que exista el sistema de
-       santuarios (Fase 7) — ver la misma nota en la Fase 1. */
-    player.ab.double_jump = true;
-    player.ab.dash = true;
-    player.ab.climb = true;
+    /* Debug: habilidades forzadas hasta que existan los santuarios
+       (Fase 7) — ver la misma nota desde la Fase 1. */
+    world.player.ab.double_jump = true;
+    world.player.ab.dash = true;
+    world.player.ab.climb = true;
 
     Camera cam;
     camera_init(&cam);
-
-    uint32_t tick = 0;
 
     while (1) {
         VBlankIntrWait();
@@ -62,17 +61,21 @@ int main(void) {
             .jump_held = pal_input_jump_held(),
             .jump_pressed = pal_input_jump_pressed(),
             .dash_pressed = pal_input_dash_pressed(),
+            .attack_pressed = pal_input_attack_pressed(),
+            .throw_pressed = pal_input_throw_pressed(),
         };
-        player_update(&player, lv, &in);
-        camera_update(&cam, player.x, player.y, lv);
+        world_update(&world, &in);
+        camera_update(&cam, world.player.x, world.player.y, world.lv);
 
         int cam_x = fx_to_int(cam.x), cam_y = fx_to_int(cam.y);
-        pal_video_sync_level(lv, cam_x, cam_y);
+        /* La sacudida de pantalla mueve la cámara, no el mundo: se aplica
+           al dibujar y no altera ninguna posición real. */
+        if (world.shake > 0) {
+            cam_x += (int)(world.tick & 1) ? world.shake / 2 : -world.shake / 2;
+        }
+        pal_video_sync_level(world.lv, cam_x, cam_y);
         pal_video_set_parallax_scroll(cam_x, cam_y);
-
-        PlayerAnim anim = player_get_anim(&player, tick);
-        pal_video_draw_player(&anim, fx_to_int(player.x) - cam_x, fx_to_int(player.y) - cam_y);
-        tick++;
+        pal_video_draw_world(&world, cam_x, cam_y);
     }
 
     return 0;

@@ -85,18 +85,25 @@ export TEMP := $(CURDIR)/$(BUILD)/tmp
 # los edita quien haga el arte). Las opciones de conversión de cada imagen
 # viven en el .grit que la acompaña, que grit lee solo.
 #---------------------------------------------------------------------------------
-GEN_C := $(GENDIR)/perseo.c $(GENDIR)/tileset_tuneles.c
+# Cada nombre de aca produce assets/gen/<nombre>.c + .h.
+#
+# OJO: los objetos se nombran por basename (build/<nombre>.o), asi que
+# ningun asset generado puede llamarse igual que un modulo de source/.
+# Por eso la hoja de particulas es fx_particles y no particles: chocaba
+# con source/core/particles.c y el enlazado fallaba por simbolo duplicado. Los .png y sus
+# .grit se buscan con vpath, asi que no hace falta repetir rutas.
+GEN_NAMES := perseo enemies_16x8 enemies_8x8 enemies_16x16 fx_8x8 fx_particles              tileset_tuneles
+GEN_C := $(addprefix $(GENDIR)/,$(addsuffix .c,$(GEN_NAMES)))
 GEN_H := $(GEN_C:.c=.h)
 
-$(GENDIR)/perseo.c $(GENDIR)/perseo.h: assets/src/sprites/perseo/perseo.png assets/src/sprites/perseo/perseo.grit
-	@mkdir -p $(GENDIR)
-	$(SILENTMSG) grit $(notdir $<)
-	$(SILENTCMD)grit $< -o $(GENDIR)/perseo
+ASSET_DIRS := assets/src/sprites/perseo assets/src/sprites/enemigos               assets/src/sprites/fx assets/src/tiles
+vpath %.png $(ASSET_DIRS)
+vpath %.grit $(ASSET_DIRS)
 
-$(GENDIR)/tileset_tuneles.c $(GENDIR)/tileset_tuneles.h: assets/src/tiles/tileset_tuneles.png assets/src/tiles/tileset_tuneles.grit
+$(GENDIR)/%.c $(GENDIR)/%.h: %.png %.grit
 	@mkdir -p $(GENDIR)
 	$(SILENTMSG) grit $(notdir $<)
-	$(SILENTCMD)grit $< -o $(GENDIR)/tileset_tuneles
+	$(SILENTCMD)grit $< -o $(GENDIR)/$*
 
 vpath %.c $(SOURCES) $(GENDIR)
 

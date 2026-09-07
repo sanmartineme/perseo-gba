@@ -1,4 +1,8 @@
 #include "player.h"
+#include "world.h"
+#include "entity_pool.h"
+#include "particles.h"
+#include "projectiles.h"
 
 /* Constantes de física — traducción valor-por-valor de las constantes
    locales de updatePlayer() en el prototipo (SPD, ACC, GRV, JV, MAXF) y
@@ -19,6 +23,14 @@
 #define PLAYER_VARJUMP_CAP    FX_C(1.6)
 #define PLAYER_DASH_VX        FX_C(3.4)
 
+#define PLAYER_ATK_FRAMES     12
+#define PLAYER_ATK_COOLDOWN   18
+#define PLAYER_THROW_FRAMES   10
+#define PLAYER_THROW_COOLDOWN 34  /* más largo que el ganchito: pega de
+                                     lejos, no debe volver trivial el
+                                     cuerpo a cuerpo */
+#define PLAYER_INV_FRAMES     90
+
 #define PLAYER_JUMP_BUFFER_FRAMES 7
 #define PLAYER_COYOTE_FRAMES      7
 #define PLAYER_DASH_FRAMES        11
@@ -33,9 +45,12 @@ void player_init(Player *p, fx_t spawn_x, fx_t spawn_y) {
     p->h = 13;
     p->face = 1;
     p->can_double_jump = true;
+    p->hp = p->max_hp = 5;
 }
 
-void player_update(Player *p, const Level *lv, const PlayerInput *in) {
+void player_update(Player *p, World *w, const PlayerInput *in) {
+    const Level *lv = w->lv;
+
     /* --- Jump buffer: ventana de 7 frames para que un salto pulsado un
        poco antes de tocar el suelo/muro igual cuente. --- */
     if (in->jump_pressed) p->jump_buffer = PLAYER_JUMP_BUFFER_FRAMES;
@@ -45,6 +60,10 @@ void player_update(Player *p, const Level *lv, const PlayerInput *in) {
        arrancar uno nuevo este mismo frame — mismo orden que el
        prototipo (dashCd-- ocurre antes del "if(dPress&&...)"). */
     if (p->dash_cd > 0) p->dash_cd--;
+    if (p->inv > 0) p->inv--;
+    if (p->atk_cd > 0) p->atk_cd--;
+    if (p->throw_cd > 0) p->throw_cd--;
+    if (p->throw_t > 0) p->throw_t--;
 
     /* --- Dash Sombrío --- */
     if (in->dash_pressed && p->ab.dash && p->dash_cd == 0 && p->dash_t == 0) {
@@ -182,23 +201,101 @@ void player_update(Player *p, const Level *lv, const PlayerInput *in) {
     p->walking = p->on_ground && p->dash_t == 0 && (in->left || in->right);
     if (p->walking) p->walk_anim++; else p->walk_anim = 0;
 
-    /* Deliberadamente fuera de la Fase 1 (se agregan junto con el
-       sistema correspondiente — ver docs/TAREAS_MIGRACION_GBA.md):
-         - Tiles dañinos / caída al vacío -> Fase 4 (F4-13, sistema de daño).
-         - Ganchito Mortal / Lanzamiento de Traza -> Fase 4 (F4-03/F4-04).
-         - Reliquias (Pata de la Suerte, etc.) -> Fase 7. */
+    /* --- Tiles dañinos: pinchos, lodo y vapor ---
+       Se muestrea el interior de la caja (1 px de margen) y gana el
+       último peligro encontrado, igual que el prototipo. */
+    {
+        int16_t tx0 = fx_to_tile(fx_add(p->x, fx_from_int(1)));
+        int16_t tx1 = fx_to_tile(fx_add(p->x, fx_from_int(p->w - 2)));
+        int16_t ty0 = fx_to_tile(fx_add(p->y, fx_from_int(2)));
+        int16_t ty1 = fx_to_tile(fx_add(p->y, fx_from_int(p->h - 1)));
+        uint8_t hazard = 0;
+        for (int16_t ty = ty0; ty <= ty1; ty++) {
+            for (int16_t tx = tx0; tx <= tx1; tx++) {
+                uint8_t id = level_tile_at(lv, tx, ty);
+                if (id == TILE_SPIKE || id == TILE_MUD) hazard = id;
+                /* El vapor sólo quema mientras sale: alterna cada 40 frames. */
+                if (id == TILE_STEAM && ((w->tick / 40) & 1) == 0) hazard = id;
+            }
+        }
+        if (hazard == TILE_SPIKE || hazard == TILE_STEAM) {
+            world_damage_player(w, 1, (int8_t)-p->face);
+        } else if (hazard == TILE_MUD) {
+            if (p->inv == 0) {
+                world_damage_player(w, 1, (int8_t)-p->face);
+                p->vy = fx_neg(FX_C(3.2));
+            } else {
+                p->vy = fx_min(p->vy, fx_neg(FX_C(1.0)));
+            }
+        }
+    }
+
+    /* --- Caída al vacío --- */
+    if (p->y > fx_from_int((int32_t)lv->h * TILE_SIZE + 40)) {
+        world_damage_player(w, 1, 1);
+        if (!p->dead) {
+            p->x = fx_from_int((int32_t)lv->spawn_tx * TILE_SIZE);
+            p->y = fx_from_int((int32_t)lv->spawn_ty * TILE_SIZE);
+            p->vx = p->vy = 0;
+        }
+    }
+
+    /* --- Habilidad pasiva 1: Ganchito Mortal (cuerpo a cuerpo) --- */
+    if (in->attack_pressed && p->atk_cd == 0 && p->dash_t == 0) {
+        p->atk_t = PLAYER_ATK_FRAMES;
+        p->atk_cd = PLAYER_ATK_COOLDOWN;
+        p->swing++;
+    }
+    if (p->atk_t > 0) {
+        p->atk_t--;
+        /* Caja de golpe por delante de la zarpa. */
+        Rect hb = {
+            p->face > 0 ? fx_add(p->x, fx_from_int(p->w - 2))
+                        : fx_sub(p->x, fx_from_int(13)),
+            fx_sub(p->y, fx_from_int(1)), 15, 15
+        };
+        for (int i = 0; i < ENTITY_POOL_CAPACITY; i++) {
+            Entity *e = entity_pool_at(i);
+            if (!e->alive || e->hit_swing == p->swing) continue;
+            Rect box = entity_box(e);
+            if (box.w == 0) continue; /* no es golpeable */
+            if (rect_overlap(hb, box)) {
+                world_hit_enemy(w, e, 1);
+                e->hit_swing = p->swing;
+            }
+        }
+    }
+
+    /* --- Habilidad pasiva 2: Lanzamiento de Traza (a distancia) --- */
+    if (in->throw_pressed && p->throw_cd == 0 && p->dash_t == 0) {
+        p->throw_t = PLAYER_THROW_FRAMES;
+        p->throw_cd = PLAYER_THROW_COOLDOWN;
+        fx_t sx = p->face > 0 ? fx_add(p->x, fx_from_int(p->w - 2))
+                              : fx_sub(p->x, fx_from_int(6));
+        proj_spawn_traza(sx, fx_add(p->y, fx_from_int(3)), p->face);
+        particles_burst(fx_add(p->x, fx_from_int(p->face > 0 ? p->w : 0)),
+                        fx_add(p->y, fx_from_int(6)), PCOL_BROWN, 4, FX_C(2.0));
+    }
+
+    /* Reliquias (Pata de la Suerte, etc.) siguen siendo de la Fase 7. */
 }
 
 /* Traducción directa de drawPlayer() del prototipo (línea ~2318): misma
    prioridad de estados y mismos tiempos. Las poses de ataque ya están en la
-   hoja de sprites y contempladas en el enum, pero todavía no se pueden
-   seleccionar porque el jugador aún no tiene contadores de combate — eso
-   llega con el Ganchito Mortal en la Fase 4 (F4-03). */
+   prioridad de estados y mismos tiempos. */
 PlayerAnim player_get_anim(const Player *p, uint32_t tick) {
     PlayerAnim a = { PFRAME_IDLE1, 0, p->face < 0, false };
 
+    /* Parpadeo de invulnerabilidad: se oculta 2 de cada 4 frames. */
+    a.hidden = (p->inv > 0) && ((tick >> 2) & 1);
+
     if (p->dash_t > 0 || p->spun) {
         a.frame = PFRAME_DASH;
+    } else if (p->atk_t > 0) {
+        /* El zarpazo dura 12 frames: preparación, impacto con las garras
+           fuera y recobro — que se vea la patita lanzarse y volver, en vez
+           de una pose fija. */
+        a.frame = p->atk_t > 8 ? PFRAME_ATK1 : (p->atk_t > 4 ? PFRAME_ATK2 : PFRAME_ATK3);
     } else if (!p->on_ground) {
         a.frame = (p->vy < 0) ? PFRAME_JUMP : PFRAME_FALL;
     } else if (p->walking) {

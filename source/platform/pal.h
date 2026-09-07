@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include "../core/level/level.h"
 #include "../core/player.h"
+#include "../core/world.h"
 
 /* ---------- Input (Fase 1) ----------
    Mapeo de botones según docs/PLAN_MIGRACION_GBA_C.md, sección 6:
@@ -65,12 +66,14 @@ void pal_video_sync_level(const Level *lv, int cam_x, int cam_y);
    (drawParallax() del prototipo). */
 void pal_video_set_parallax_scroll(int cam_x, int cam_y);
 
-/* Dibuja a Perseo como OBJ de hardware con el frame que le corresponde.
-   `anim` lo decide core/player.c (player_get_anim); acá sólo se traduce a
-   atributos de OAM. scr_x/scr_y son la esquina de su caja de colisión ya
-   en coordenadas de pantalla (posición de mundo menos cámara): el
-   desplazamiento del sprite respecto de la caja lo aplica esta función. */
-void pal_video_draw_player(const PlayerAnim *anim, int scr_x, int scr_y);
+/* Dibuja todo lo que va en sprites de hardware, en un solo lugar: Perseo,
+   las entidades vivas, las partículas y el HUD de vida. Reparte los 128
+   objetos de OAM por orden de prioridad y esconde los que sobran, así que
+   nadie más tiene que preocuparse por qué ranura le toca a quién.
+
+   Qué pose le corresponde a Perseo lo decide core/ (player_get_anim);
+   acá sólo se traduce a atributos de OAM. */
+void pal_video_draw_world(const World *w, int cam_x, int cam_y);
 
 /* ---------- Audio (Fase 6) ---------- */
 void pal_audio_init(void);

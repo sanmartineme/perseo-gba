@@ -29,8 +29,29 @@
 #include "../../core/camera.h" /* SCREEN_W/SCREEN_H */
 #include "../../core/player.h" /* PlayerAnim, PLAYER_SPRITE_OFFSET_* */
 
+#include "../../core/world.h"
+#include "../../core/particles.h"
+#include "../../core/entity_pool.h"
+
 #include "tileset_tuneles.h"
 #include "perseo.h"
+#include "enemies_16x8.h"
+#include "enemies_8x8.h"
+#include "enemies_16x16.h"
+#include "fx_8x8.h"
+#include "fx_particles.h"
+
+#define TILES_OF(len)   ((len) / 32) /* un tile 4bpp son 32 bytes */
+#define TB_PERSEO       0
+#define TB_E16X8        (TB_PERSEO  + TILES_OF(perseoTilesLen))
+#define TB_E8X8         (TB_E16X8   + TILES_OF(enemies_16x8TilesLen))
+#define TB_E16X16       (TB_E8X8    + TILES_OF(enemies_8x8TilesLen))
+#define TB_FX           (TB_E16X16  + TILES_OF(enemies_16x16TilesLen))
+#define TB_PARTICLES    (TB_FX      + TILES_OF(fx_8x8TilesLen))
+
+#define PALBANK_PERSEO  0
+#define PALBANK_ENEMY   1
+#define PALBANK_FX      2
 
 #define BG_CBB_INDEX 0
 #define BG2_SBB_INDEX 8
@@ -46,8 +67,6 @@
    forma parte del mundo colisionable. */
 #define TILEG_PARALLAX 10
 
-#define PLAYER_OBJ 0
-#define PLAYER_TILES_PER_FRAME 4 /* 16x16 = 2x2 tiles */
 
 static void set_map_entry(int sbb, int world_tx, int world_ty, u16 tile_graphic) {
     se_mem[sbb][(world_ty & MAP_MASK) * MAP_TILES + (world_tx & MAP_MASK)] = SE_ID(tile_graphic);
@@ -78,9 +97,18 @@ void pal_video_init(void) {
     memcpy32(&tile_mem[BG_CBB_INDEX][0], tileset_tunelesTiles, tileset_tunelesTilesLen / 4);
     memcpy32(pal_bg_mem, tileset_tunelesPal, tileset_tunelesPalLen / 4);
 
-    /* Sprites: hoja de frames de Perseo + su paleta (banco 0 de OBJ). */
-    memcpy32(&tile_mem_obj[0][0], perseoTiles, perseoTilesLen / 4);
-    memcpy32(pal_obj_mem, perseoPal, perseoPalLen / 4);
+    /* Sprites: las hojas se apilan en la VRAM de objetos y cada banco de
+       paleta va a su bloque de 16 colores. */
+    memcpy32(&tile_mem_obj[0][TB_PERSEO],    perseoTiles,        perseoTilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_E16X8],     enemies_16x8Tiles,  enemies_16x8TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_E8X8],      enemies_8x8Tiles,   enemies_8x8TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_E16X16],    enemies_16x16Tiles, enemies_16x16TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_FX],        fx_8x8Tiles,        fx_8x8TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_PARTICLES], fx_particlesTiles,  fx_particlesTilesLen / 4);
+
+    memcpy32(&pal_obj_mem[PALBANK_PERSEO * 16], perseoPal,       perseoPalLen / 4);
+    memcpy32(&pal_obj_mem[PALBANK_ENEMY * 16],  enemies_16x8Pal, enemies_16x8PalLen / 4);
+    memcpy32(&pal_obj_mem[PALBANK_FX * 16],     fx_8x8Pal,       fx_8x8PalLen / 4);
 
     SBB_CLEAR(BG2_SBB_INDEX);
     SBB_CLEAR(BG1_SBB_INDEX);
@@ -93,8 +121,6 @@ void pal_video_init(void) {
     REG_BG1CNT = BG_CBB(BG_CBB_INDEX) | BG_SBB(BG1_SBB_INDEX) | BG_4BPP | BG_REG_32x32 | BG_PRIO(1);
 
     oam_init(oam_mem, 128);
-    obj_set_attr(&oam_mem[PLAYER_OBJ], ATTR0_SQUARE, ATTR1_SIZE_16x16,
-                 ATTR2_ID(0) | ATTR2_PALBANK(0));
 
     s_left = 1; s_right = 0;
     s_top = 1; s_bottom = 0;
@@ -138,18 +164,119 @@ void pal_video_set_parallax_scroll(int cam_x, int cam_y) {
     REG_BG1VOFS = cam_y / 2;
 }
 
-void pal_video_draw_player(const PlayerAnim *anim, int scr_x, int scr_y) {
-    OBJ_ATTR *obj = &oam_mem[PLAYER_OBJ];
-    if (anim->hidden) {
-        obj_hide(obj);
-        return;
+/* =====================================================================
+   Sprites de hardware (OBJ)
+   =====================================================================
+   Las hojas se cargan una detrás de otra en la VRAM de objetos; las bases
+   se calculan a partir de los tamaños que reporta grit, así que agregar
+   frames a una hoja no obliga a tocar ningún número acá.
+
+   Bancos de paleta (4bpp, 16 colores cada uno): 0 Perseo, 1 enemigos,
+   2 efectos. Los agrupa tools/spritegen/ascii_to_png.py.
+   ===================================================================== */
+
+/* Índices de frame dentro de la hoja de efectos (el orden lo fija
+   SPRITE_SHEETS en tools/spritegen/ascii_to_png.py). */
+enum { FX_TRAZA = 0, FX_JUNK = 2, FX_SHOCK = 3, FX_HEART = 4, FX_CHAPA = 5 };
+
+typedef struct SpriteDef {
+    uint16_t tile_base;      /* primer tile de la hoja */
+    uint8_t  tiles_per_frame;
+    uint8_t  frame_count;    /* cuántos frames tiene la animación de un tipo */
+    uint16_t shape;          /* ATTR0_* */
+    uint16_t size;           /* ATTR1_SIZE_* */
+    uint8_t  palbank;
+} SpriteDef;
+
+static const SpriteDef SPRITE_16X8  = { TB_E16X8,  2, 2, ATTR0_WIDE,   ATTR1_SIZE_16x8,  PALBANK_ENEMY };
+static const SpriteDef SPRITE_8X8   = { TB_E8X8,   1, 2, ATTR0_SQUARE, ATTR1_SIZE_8x8,   PALBANK_ENEMY };
+static const SpriteDef SPRITE_16X16 = { TB_E16X16, 4, 2, ATTR0_SQUARE, ATTR1_SIZE_16x16, PALBANK_ENEMY };
+static const SpriteDef SPRITE_FX    = { TB_FX,     1, 1, ATTR0_SQUARE, ATTR1_SIZE_8x8,   PALBANK_FX };
+
+/* Ranura de OAM que toca; se reinicia en cada frame. */
+static int s_obj_next;
+
+static void obj_put(int scr_x, int scr_y, uint16_t tile, uint16_t shape,
+                    uint16_t size, uint8_t palbank, bool flip_h) {
+    if (s_obj_next >= 128) return; /* OAM lleno: lo que sobra no se dibuja */
+    /* Descarta lo que quedó fuera de pantalla antes de gastar un objeto:
+       las coordenadas de OAM son de 8/9 bits y darían la vuelta. */
+    if (scr_x < -32 || scr_x > SCREEN_W + 32 ||
+        scr_y < -32 || scr_y > SCREEN_H + 32) return;
+
+    OBJ_ATTR *obj = &oam_mem[s_obj_next++];
+    obj->attr0 = ATTR0_Y(scr_y & 0xFF) | shape;
+    obj->attr1 = ATTR1_X(scr_x & 0x1FF) | size | (flip_h ? ATTR1_HFLIP : 0);
+    obj->attr2 = ATTR2_ID(tile) | ATTR2_PALBANK(palbank);
+}
+
+/* Elige la hoja y el frame base de cada tipo de entidad. Devuelve NULL
+   para lo que todavía no se dibuja (decoración sin sistema propio). */
+static const SpriteDef *sprite_for(const Entity *e, int *first_frame) {
+    switch (e->type) {
+        case ENT_RAT:    *first_frame = 0; return &SPRITE_16X8;
+        case ENT_GUNNER: *first_frame = 2; return &SPRITE_16X8;
+        case ENT_ROACH:  *first_frame = 0; return &SPRITE_8X8;
+        case ENT_MOSQ:   *first_frame = 2; return &SPRITE_8X8;
+        case ENT_BAT:    *first_frame = 4; return &SPRITE_8X8;
+        case ENT_THUG:   *first_frame = 0; return &SPRITE_16X16;
+        case ENT_BRUTE:  *first_frame = 2; return &SPRITE_16X16;
+        case ENT_PROJ_TRAZA: *first_frame = FX_TRAZA; return &SPRITE_FX;
+        case ENT_PROJ_JUNK:  *first_frame = FX_JUNK;  return &SPRITE_FX;
+        case ENT_PROJ_SHOCK: *first_frame = FX_SHOCK; return &SPRITE_FX;
+        case ENT_CHAPA:      *first_frame = FX_CHAPA; return &SPRITE_FX;
+        case ENT_HP:         *first_frame = FX_HEART; return &SPRITE_FX;
+        default: return 0;
     }
-    obj_unhide(obj, ATTR0_REG);
-    /* Cada frame de 16x16 ocupa 4 tiles consecutivos gracias al meta-tiling
-       de grit (-Mw2 -Mh2) y al mapeo 1D de OBJ. */
-    BFN_SET(obj->attr2, anim->frame * PLAYER_TILES_PER_FRAME, ATTR2_ID);
-    if (anim->flip_h) obj->attr1 |= ATTR1_HFLIP;
-    else              obj->attr1 &= ~ATTR1_HFLIP;
-    obj_set_pos(obj, scr_x + PLAYER_SPRITE_OFFSET_X,
-                     scr_y + PLAYER_SPRITE_OFFSET_Y + anim->bob);
+}
+
+void pal_video_draw_world(const World *w, int cam_x, int cam_y) {
+    s_obj_next = 0;
+
+    /* 1. Perseo primero: es lo que nunca puede faltar si se llena OAM. */
+    PlayerAnim anim = player_get_anim(&w->player, w->tick);
+    if (!anim.hidden) {
+        obj_put(fx_to_int(w->player.x) - cam_x + PLAYER_SPRITE_OFFSET_X,
+                fx_to_int(w->player.y) - cam_y + PLAYER_SPRITE_OFFSET_Y + anim.bob,
+                (uint16_t)(TB_PERSEO + anim.frame * 4),
+                ATTR0_SQUARE, ATTR1_SIZE_16x16, PALBANK_PERSEO, anim.flip_h);
+    }
+
+    /* 2. Entidades vivas. */
+    for (int i = 0; i < ENTITY_POOL_CAPACITY; i++) {
+        const Entity *e = entity_pool_at(i);
+        if (!e->alive) continue;
+        int first = 0;
+        const SpriteDef *def = sprite_for(e, &first);
+        if (!def) continue;
+
+        /* Los enemigos golpeados parpadean: se saltan un frame de cada dos
+           mientras dura el destello. Es como se lee un impacto sin tener
+           que cambiarles la paleta. */
+        if (e->flash > 0 && (w->tick & 1)) continue;
+
+        int frame = first;
+        if (def->frame_count > 1) frame += (int)((w->tick >> 3) & 1);
+        obj_put(fx_to_int(e->x) - cam_x, fx_to_int(e->y) - cam_y,
+                (uint16_t)(def->tile_base + frame * def->tiles_per_frame),
+                def->shape, def->size, def->palbank, e->face < 0);
+    }
+
+    /* 3. Partículas: un objeto cada una, con un frame por color. */
+    for (int i = 0; i < particles_count(); i++) {
+        const Particle *p = particles_get(i);
+        if (!p->alive) continue;
+        obj_put(fx_to_int(p->x) - cam_x, fx_to_int(p->y) - cam_y,
+                (uint16_t)(TB_PARTICLES + p->color),
+                ATTR0_SQUARE, ATTR1_SIZE_8x8, PALBANK_FX, false);
+    }
+
+    /* 4. HUD de vida: en coordenadas de pantalla, sin cámara. */
+    for (int i = 0; i < w->player.hp; i++) {
+        obj_put(4 + i * 9, 4, (uint16_t)(TB_FX + FX_HEART),
+                ATTR0_SQUARE, ATTR1_SIZE_8x8, PALBANK_FX, false);
+    }
+
+    /* Esconde las ranuras que no se usaron este frame. */
+    for (int i = s_obj_next; i < 128; i++) obj_hide(&oam_mem[i]);
 }

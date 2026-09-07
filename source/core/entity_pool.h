@@ -26,6 +26,11 @@ Entity *entity_pool_alloc(EntityType type);
 void entity_pool_free(Entity *e);
 int entity_pool_count(void);
 
+/* Acceso directo por indice (0..ENTITY_POOL_CAPACITY-1), incluidas las
+   ranuras libres: es lo que usan los bucles que recorren todo el pool
+   cada frame, donde un callback por entidad saldria mas caro. */
+Entity *entity_pool_at(int index);
+
 typedef bool (*EntityVisitor)(Entity *e, void *ctx);
 /* Recorre las entidades vivas; visit puede devolver false para cortar
    la iteración antes de tiempo (ej. al encontrar el primer impacto). */

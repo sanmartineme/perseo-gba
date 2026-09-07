@@ -113,23 +113,21 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 4 — Entidades, combate y enemigos
 
-- [ ] **F4-01** Implementar `core/particles.h/.c` (pool + `burst()` equivalente a [index.html:1599](index.html#L1599)).
-- [ ] **F4-02** Implementar `core/projectiles.h/.c` (traza, junk, shock) sobre el pool de entidades.
-- [ ] **F4-03** Implementar el Ganchito Mortal (ataque cuerpo a cuerpo) en `player.c`, incluida la caja de golpe y sus 3 fases de animación.
-- [ ] **F4-04** Implementar el Lanzamiento de Traza (proyectil + cooldown de 34 frames).
-- [ ] **F4-05** Implementar `core/enemies/enemy_common.h/.c`: spawn de enemigos desde las entidades iniciales del nivel, daño recibido, muerte y drop.
-- [ ] **F4-06** Portar IA de `enemy_rat.c`.
-- [ ] **F4-07** Portar IA de `enemy_roach.c`.
-- [ ] **F4-08** Portar IA de `enemy_mosq.c`.
-- [ ] **F4-09** Portar IA de `enemy_bat.c`.
-- [ ] **F4-10** Portar IA de `enemy_thug.c`.
-- [ ] **F4-11** Portar IA de `enemy_brute.c` (El Sicario).
-- [ ] **F4-12** Portar IA de `enemy_gunner.c` (incluye su propio proyectil a distancia).
-- [ ] **F4-13** Implementar `damage()` del jugador: invulnerabilidad temporal, knockback, muerte (equivalente a [index.html:1635](index.html#L1635)).
-- [ ] **F4-14** Implementar un HUD mínimo de vida (corazones) suficiente para playtesting (versión completa en Fase 7).
-- [ ] **F4-15** Recorrer el Nivel 1 completo con todos sus enemigos activos y validar combate/daño.
+- [x] **F4-01** `core/particles.h/.c`: pool estático de 32 partículas con el `burst()` del prototipo. *(El color se guarda como un enum lógico, no como RGB: en la GBA el color de un sprite va dentro del tile, así que la capa de vídeo tiene un frame por color y `core/` no necesita saber nada de paletas.)*
+- [x] **F4-02** `core/projectiles.h/.c`: traza, chatarra y onda de choque. *(No tienen pool propio como en el prototipo: son `Entity` del pool común, así hay un solo camino de dibujado y de colisión.)*
+- [x] **F4-03** Ganchito Mortal, con su caja de golpe por delante de la zarpa, sus 3 fases de animación y la marca de zarpazo que impide que un mismo golpe cuente dos veces.
+- [x] **F4-04** Lanzamiento de Traza con su enfriamiento de 34 frames.
+- [x] **F4-05** `core/world.{h,c}`: instancia las entidades desde los datos del nivel y concentra lo compartido (cajas, patrulla, daño, botín). *(Añadido respecto del plan: el prototipo usaba globales — `LV`, `P`, `projs`, `shake` — y agruparlos en un `World` que se pasa explícito deja el mismo código sin estado oculto.)*
+- [x] **F4-06..F4-12** Los 7 tipos de enemigo, uno por archivo en `core/enemies/`: rata, cucaracha, mosquito, murciélago, matón, tiradora y El Sicario. *(Hizo falta añadir dos utilidades a `core/`: `rng.c` — el prototipo usaba `Math.random()` para la cadencia de tiro y el botín — y `trig.c`, con una tabla de senos y una raíz entera para el vaivén de los voladores y la embestida del mosquito, que en el original eran `Math.sin`/`Math.hypot`.)*
+- [x] **F4-13** Daño al jugador: invulnerabilidad de 90 frames con parpadeo, empujón, tiles dañinos (pinchos, lodo y el vapor intermitente) y muerte por caída al vacío. *(Al dashear Perseo es intocable, igual que en el prototipo: es parte de para qué sirve el dash.)*
+- [x] **F4-14** HUD de vida: los corazones se dibujan como sprites de hardware en coordenadas de pantalla.
+- [x] **F4-15** Verificado en emulador sobre el Nivel 1 real: enemigos patrullando, lodo verde que hace daño, chapas recogibles, partículas al golpear, y los corazones bajando al recibir golpes.
 
-**Criterio de cierre de fase:** Nivel 1 100% jugable con combate y los 7 tipos de enemigo.
+**Cabo suelto conocido (y por qué):** al morir, el nivel se reinicia entero en vez de reaparecer en la última lámpara. Los checkpoints necesitan la máquina de estados y el guardado de la **Fase 7**; reiniciar mantiene el juego jugable sin fingir que ya existe algo que todavía no está. Por la misma razón las entidades de progresión que ya vienen en los datos del nivel (santuarios, puertas, carteles, lámparas, reliquias) se leen pero todavía no se instancian.
+
+**Trampa encontrada en el camino:** los objetos se nombran por basename (`build/<nombre>.o`), así que la hoja de sprites de partículas —que se llamaba `particles`— chocaba con `source/core/particles.c` y el enlazado fallaba por símbolo duplicado. Se renombró a `fx_particles` y quedó anotada la restricción en el `Makefile`.
+
+**Criterio de cierre de fase:** ✅ cumplido — el Nivel 1 es jugable con combate y sus enemigos.
 
 ---
 

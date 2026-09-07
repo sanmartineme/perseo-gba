@@ -1,0 +1,7 @@
+# Sprites de 8x8: un tile por frame, sin meta-tiles.
+# grit lee este archivo automaticamente al convertir el .png.
+-gt
+-gB4
+-pn16
+-ftc
+-fh

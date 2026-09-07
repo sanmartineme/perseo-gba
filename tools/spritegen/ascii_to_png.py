@@ -3,17 +3,18 @@ ascii_to_png.py - convierte el arte ASCII del prototipo a PNG indexado.
 
 Entradas:
   - docs/prototipo_referencia.html : sprites SPR.* y paleta COL{}
-  - assets/src/tiles/*.txt         : tiles del mundo (transcripcion editable
-                                     de drawTile(), que era procedural)
+  - assets/src/**/*.txt            : arte propio, para lo que el prototipo
+                                     dibujaba de forma procedural (los tiles
+                                     del mundo y las partículas)
 
 Salidas (assets/src/**.png + .json):
-  PNG indexado de 4bpp-compatible (<=16 colores, indice 0 transparente),
+  PNG indexado compatible con 4bpp (<=16 colores, índice 0 transparente),
   con la paleta ya cuantizada a 5 bits por canal — o sea, exactamente los
-  colores que la GBA puede mostrar. A partir de aca el PNG es la fuente de
+  colores que la GBA puede mostrar. A partir de acá el PNG es la fuente de
   verdad editable (Aseprite/GraphicsGale) y el prototipo deja de mandar:
-  este script solo se vuelve a correr si se quiere re-sembrar desde cero.
+  este script sólo se vuelve a correr para re-sembrar desde cero.
 
-Ver docs/PLAN_MIGRACION_GBA_C.md, seccion 5.
+Ver docs/PLAN_MIGRACION_GBA_C.md, sección 5.
 """
 import json
 import sys
@@ -21,33 +22,54 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from common.prototype import (REPO, load_palette, load_sprites, rgb5_to_rgb8,
-                              sprite_size, TRANSPARENT_CHARS)
+                              TRANSPARENT_CHARS)
 
 from PIL import Image
 
-MAX_COLORS = 16  # 4bpp: 15 colores + el indice 0 transparente
+MAX_COLORS = 16  # 4bpp: 15 colores + el índice 0 transparente
 
-# Grupos de sprites que comparten banco de paleta. Cada grupo se emite
-# como una hoja vertical de frames del mismo tamano, que es lo que
-# espera grit con meta-tiles (-Mw/-Mh) para el mapeo 1D de OBJ.
-SPRITE_GROUPS = {
-    "perseo/perseo": [
+# Hojas de sprites. Cada una se emite como una tira vertical de frames del
+# mismo tamaño, que es lo que espera grit con meta-tiles (-Mw/-Mh) para el
+# mapeo 1D de OBJ.
+#
+# "bank" agrupa hojas que comparten paleta: en 4bpp cada sprite elige un
+# banco de 16 colores (ATTR2_PALBANK), así que todo lo que se dibuje con el
+# mismo banco tiene que haberse cuantizado contra la MISMA paleta. Por eso
+# la paleta se calcula por banco y no por hoja.
+#
+# "frames" toma los sprites del prototipo; "source" toma el arte de un .txt.
+SPRITE_SHEETS = [
+    {"name": "perseo/perseo", "bank": "perseo", "size": (16, 16), "frames": [
         "p_idle1", "p_idle2",
         "p_walk1", "p_walk2", "p_walk3", "p_walk4",
         "p_jump", "p_fall", "p_dash",
         "p_atk1", "p_atk2", "p_atk3",
-    ],
-}
+    ]},
+    {"name": "enemigos/enemies_16x8", "bank": "enemies", "size": (16, 8), "frames": [
+        "rat1", "rat2", "gunner1", "gunner2",
+    ]},
+    {"name": "enemigos/enemies_8x8", "bank": "enemies", "size": (8, 8), "frames": [
+        "roach1", "roach2", "mosq1", "mosq2", "bat1", "bat2",
+    ]},
+    {"name": "enemigos/enemies_16x16", "bank": "enemies", "size": (16, 16), "frames": [
+        "thug1", "thug2", "brute1", "brute2",
+    ]},
+    {"name": "fx/fx_8x8", "bank": "fx", "size": (8, 8), "frames": [
+        "traza", "traza2", "junkproj", "shock", "heart", "chapa", "slash", "slash2",
+    ]},
+    {"name": "fx/fx_particles", "bank": "fx", "size": (8, 8),
+     "source": "assets/src/sprites/fx/fx_particles.txt"},
+]
 
 
 def build_palette(char_sets, pal):
-    """Asigna indices 1..15 a los caracteres usados; 0 queda transparente."""
+    """Asigna índices 1..15 a los caracteres usados; el 0 queda transparente."""
     used = sorted(set().union(*char_sets) - set(TRANSPARENT_CHARS))
     missing = [c for c in used if c not in pal]
     if missing:
-        raise RuntimeError(f"Caracteres sin color en COL{{}}: {missing}")
+        raise RuntimeError(f"Caracteres sin color en COL: {missing}")
     if len(used) + 1 > MAX_COLORS:
-        raise RuntimeError(f"{len(used) + 1} colores > {MAX_COLORS} (4bpp) en el grupo")
+        raise RuntimeError(f"{len(used) + 1} colores > {MAX_COLORS} (4bpp)")
     return {c: i + 1 for i, c in enumerate(used)}
 
 
@@ -67,58 +89,66 @@ def write_indexed_png(path, rows_grid, char_index, pal, width, height):
     img.save(path)
 
 
-def emit_sprite_group(name, frame_names, sprites, pal):
-    frames = []
-    for fn in frame_names:
-        if fn not in sprites:
-            raise RuntimeError(f"El prototipo no define SPR.{fn}")
-        frames.append(sprites[fn])
-    sizes = {sprite_size(f) for f in frames}
-    if len(sizes) != 1:
-        raise RuntimeError(f"Grupo {name}: frames de tamanos distintos {sizes}")
-    fw, fh = sizes.pop()
-
-    char_index = build_palette([{c for row in f for c in row} for f in frames], pal)
-
-    grid = []
-    for f in frames:
-        for row in f:
-            grid.append(row.ljust(fw, "."))
-    out = REPO / "assets" / "src" / "sprites" / f"{name}.png"
-    write_indexed_png(out, grid, char_index, pal, fw, fh * len(frames))
-
-    meta = {
-        "frame_size": [fw, fh],
-        "frames": frame_names,
-        "palette": {"0": "transparente", **{str(i): c for c, i in char_index.items()}},
-    }
-    out.with_suffix(".json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
-    print(f"  {out.relative_to(REPO)}  {fw}x{fh} x{len(frames)} frames, "
-          f"{len(char_index) + 1} colores")
-    return meta
-
-
-def parse_tile_file(path):
-    """Lee un .txt de tiles: bloques de 8 lineas separados por comentarios."""
-    tiles, cur = [], []
+def parse_block_file(path, size):
+    """Lee un .txt de arte: bloques separados por líneas en blanco/comentarios."""
+    bw, bh = size
+    blocks, cur = [], []
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.rstrip()
         if not line or line.lstrip().startswith("#"):
             if cur:
-                tiles.append(cur)
+                blocks.append(cur)
                 cur = []
             continue
         cur.append(line)
     if cur:
-        tiles.append(cur)
-    for i, t in enumerate(tiles):
-        if len(t) != 8 or any(len(r) != 8 for r in t):
-            raise RuntimeError(f"{path.name}: el tile {i} no es de 8x8")
-    return tiles
+        blocks.append(cur)
+    for i, b in enumerate(blocks):
+        if len(b) != bh or any(len(r) != bw for r in b):
+            raise RuntimeError(f"{path.name}: el bloque {i} no es de {bw}x{bh}")
+    return blocks
+
+
+def sheet_frames(sheet, sprites):
+    """Devuelve [(nombre, filas)] de una hoja, venga del prototipo o de un .txt."""
+    if "source" in sheet:
+        blocks = parse_block_file(REPO / sheet["source"], sheet["size"])
+        base = sheet["name"].split("/")[-1]
+        return [(f"{base}_{i}", b) for i, b in enumerate(blocks)]
+    out = []
+    for fn in sheet["frames"]:
+        if fn not in sprites:
+            raise RuntimeError(f"El prototipo no define SPR.{fn}")
+        out.append((fn, sprites[fn]))
+    return out
+
+
+def emit_sheet(sheet, frames, char_index, pal):
+    fw, fh = sheet["size"]
+    grid = []
+    for _, rows in frames:
+        # Los frames más chicos que la celda se rellenan con transparente
+        # abajo y a la derecha: como ahí no se dibuja nada, la posición del
+        # sprite sigue coincidiendo con la de su caja de colisión.
+        padded = [r.ljust(fw, ".") for r in rows] + ["." * fw] * (fh - len(rows))
+        grid.extend(padded[:fh])
+    name = sheet["name"]
+    out = REPO / "assets" / "src" / "sprites" / (name + ".png")
+    write_indexed_png(out, grid, char_index, pal, fw, fh * len(frames))
+
+    meta = {
+        "frame_size": [fw, fh],
+        "bank": sheet["bank"],
+        "frames": [n for n, _ in frames],
+        "palette": {"0": "transparente", **{str(i): c for c, i in char_index.items()}},
+    }
+    out.with_suffix(".json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    print(f"  {out.relative_to(REPO)}  {fw}x{fh} x{len(frames)} frames")
+    return meta
 
 
 def emit_tileset(txt_path, pal):
-    tiles = parse_tile_file(txt_path)
+    tiles = parse_block_file(txt_path, (8, 8))
     char_index = build_palette([{c for row in t for c in row} for t in tiles], pal)
     grid = [row for t in tiles for row in t]
     out = txt_path.with_suffix(".png")
@@ -135,9 +165,24 @@ def emit_tileset(txt_path, pal):
 def main():
     pal = load_palette()
     sprites = load_sprites()
+
+    # La paleta se calcula sobre TODAS las hojas de un mismo banco a la vez,
+    # para que compartan índices y puedan usar el mismo ATTR2_PALBANK.
+    loaded = [(sh, sheet_frames(sh, sprites)) for sh in SPRITE_SHEETS]
+    banks = {}
+    for sh, frames in loaded:
+        chars = set()
+        for _, rows in frames:
+            chars |= {c for row in rows for c in row}
+        banks.setdefault(sh["bank"], set()).update(chars)
+    bank_index = {b: build_palette([chars], pal) for b, chars in banks.items()}
+    for b, idx in sorted(bank_index.items()):
+        print(f"Banco de paleta '{b}': {len(idx) + 1} colores")
+
     print("Sprites:")
-    for name, frames in SPRITE_GROUPS.items():
-        emit_sprite_group(name, frames, sprites, pal)
+    for sh, frames in loaded:
+        emit_sheet(sh, frames, bank_index[sh["bank"]], pal)
+
     print("Tilesets:")
     for txt in sorted((REPO / "assets" / "src" / "tiles").glob("*.txt")):
         emit_tileset(txt, pal)
