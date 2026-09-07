@@ -24,3 +24,7 @@ tools/emulators/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Cache de Python de las herramientas del pipeline
+__pycache__/
+*.pyc

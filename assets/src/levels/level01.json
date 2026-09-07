@@ -1,0 +1,77 @@
+{
+  "id": "level01_tuneles",
+  "name": "Túneles de Filtración",
+  "size": [200, 44],
+  "fill": 1,
+  "spawn": [4, 26],
+  "theme": { "brick": "T", "brickD": "t" },
+  "song": "lvl1",
+  "story": [
+    "Las cloacas primarias de Silencio son la puerta al imperio de Betty. Perseo desciende guiado por el aroma de Aurorita.",
+    "OBJETIVO: Atraviesa los túneles y abre camino hacia la Ciudad Vertedero."
+  ],
+  "carve": [
+    [2, 6, 197, 27, 0],
+    [10, 32, 190, 39, 0],
+    [34, 28, 37, 31, 0],
+    [180, 28, 187, 31, 0],
+    [78, 28, 85, 31, 0],
+
+    [60, 6, 61, 21, 1],
+    [60, 22, 61, 27, 5],
+    [62, 6, 70, 19, 1],
+    [62, 20, 70, 27, 0],
+    [71, 6, 73, 21, 1],
+    [71, 22, 73, 27, 5],
+
+    [50, 38, 70, 39, 4],
+    [53, 37, 54, 37, 2],
+    [58, 35, 59, 35, 2],
+    [64, 37, 65, 37, 2],
+
+    [92, 39, 95, 39, 3],
+    [126, 39, 128, 39, 3],
+
+    [149, 38, 151, 39, 8],
+    [119, 26, 121, 27, 8],
+
+    [180, 37, 182, 37, 2],
+    [185, 34, 187, 34, 2],
+    [180, 31, 182, 31, 2],
+    [185, 28, 187, 28, 2],
+    [180, 25, 182, 25, 2]
+  ],
+  "entities": [
+    { "type": "sign", "at": [10, 26], "text": "Silencio. Las cloacas bajo la gran ciudad. Aurorita está aquí, en algún lugar." },
+    { "type": "lamp", "at": [30, 26] },
+    { "type": "sign", "at": [55, 26], "text": "Una rejilla oxidada bloquea el paso. Ni mis garras pueden romperla... aún." },
+    { "type": "door", "at": [65, 25], "param": 1 },
+    { "type": "lamp", "at": [140, 38] },
+    { "type": "shrine", "at": [149, 36], "ability": "djump", "name": "SALTO DOBLE", "desc": "Voltereta felina: pulsa salto en el aire" },
+    { "type": "shrine", "at": [119, 24], "ability": "dash", "name": "DASH SOMBRÍO", "desc": "Embiste y rompe rejillas oxidadas" },
+
+    { "type": "rat", "at": [30, 38] },
+    { "type": "rat", "at": [85, 38] },
+    { "type": "rat", "at": [110, 38] },
+    { "type": "rat", "at": [135, 38] },
+    { "type": "roach", "at": [95, 26] },
+    { "type": "roach", "at": [140, 26] },
+    { "type": "roach", "at": [160, 26] },
+    { "type": "mosq", "at": [100, 18] },
+    { "type": "mosq", "at": [132, 15] },
+    { "type": "mosq", "at": [165, 20] },
+    { "type": "gunner", "at": [160, 38], "param": -1 },
+
+    { "type": "chapa", "at": [35, 30] },
+    { "type": "chapa", "at": [59, 32] },
+    { "type": "chapa", "at": [75, 34] },
+    { "type": "chapa", "at": [155, 33] },
+    { "type": "chapa", "at": [168, 25] },
+    { "type": "chapa", "at": [110, 22] },
+    { "type": "chapa", "at": [90, 24] },
+    { "type": "chapa", "at": [183, 22] },
+
+    { "type": "relic", "at": [14, 25], "relic": "colmillo" },
+    { "type": "relic", "at": [110, 36], "relic": "pata" }
+  ]
+}

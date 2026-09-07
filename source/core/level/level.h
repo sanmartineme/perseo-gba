@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../fixed.h"
+#include "../entity.h"
 
 #define TILE_SIZE 8
 
@@ -36,10 +37,23 @@ typedef enum TileId {
     TILE_STEAM     = 9   /* dañino intermitente, no sólido — Fase 4 */
 } TileId;
 
+/* Entidad tal como viene colocada en los datos del nivel — equivale a una
+   llamada E(L, tipo, tx, ty, props) del prototipo. Es sólo la "semilla":
+   al cargar el nivel se instancian a partir de acá las Entity vivas del
+   pool (core/entity_pool.h), desde la Fase 4. */
+typedef struct LevelEntitySpawn {
+    uint8_t type;     /* EntityType */
+    int16_t tx, ty;   /* posición en tiles */
+    int16_t param;    /* significado según el tipo: destino de una puerta,
+                         dirección inicial de un enemigo, etc. */
+} LevelEntitySpawn;
+
 typedef struct Level {
     int16_t w, h;                /* tamaño en tiles */
     const uint8_t *tiles;        /* w*h bytes, fila por fila (fila 0 = arriba) */
     int16_t spawn_tx, spawn_ty;  /* tile de aparición del jugador */
+    const LevelEntitySpawn *entities;
+    int16_t entity_count;
 } Level;
 
 bool tile_is_solid(uint8_t id);

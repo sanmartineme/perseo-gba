@@ -1,0 +1,123 @@
+# Tileset de los Tuneles de Filtracion (Nivel 1)
+#
+# Transcripcion a arte editable de drawTile() del prototipo, que dibujaba
+# cada tile de forma procedural con fillRect (ver docs/prototipo_referencia.html).
+# Cada bloque es un tile de 8x8; cada caracter es una clave de la paleta
+# COL{} del prototipo ('.' = transparente).
+#
+# El orden de los bloques ES el orden de los tiles en VRAM: el indice de
+# cada uno tiene que coincidir con tile_graphic_for() en
+# source/platform/gba/pal_gba_video.c.
+#
+# Tema del Nivel 1: brick='T' (gris azulado), brickD='t' (su sombra).
+
+# 0 EMPTY (transparente)
+........
+........
+........
+........
+........
+........
+........
+........
+
+# 1 BRICK - ladrillo con mortero marcado
+TTTTTtTT
+TTTTTtTT
+TTTTTtTT
+tttttttt
+TtTTTTTT
+TtTTTTTT
+TtTTTTTT
+tttttttt
+
+# 2 PLATFORM - rejilla metalica (plataforma de un sentido)
+NNNNNNNN
+nntnnntn
+nntnnntn
+........
+........
+........
+........
+........
+
+# 3 SPIKE - pinchos
+........
+..L..L..
+..L..L..
+.LL..LL.
+.LL..LL.
+.LLL.LLL
+LLLLLLLL
+LLLLLLLL
+
+# 4 MUD - lodo pegajoso
+EEEEEEEE
+EEEEEEEE
+eeeeeeee
+eeeeeeee
+eeeeeeee
+eeeeeeee
+eeeeeeee
+eeeeeeee
+
+# 5 RUST - rejilla oxidada (rompible con Dash Sombrio)
+oOOKKOOo
+oOOKKOOo
+oOOKKOOo
+oOOKKOOo
+oOOKKOOo
+oOOKKOOo
+oOOKKOOo
+oOOKKOOo
+
+# 6 GRATE - chatarra compactada
+nnnnnnnn
+nNNNNnnn
+nNNNNnOO
+nnnnnnOO
+nnnnnnnn
+GGGnNNNn
+nnnnNNNn
+nnnnnnnn
+
+# 7 (sin usar)
+........
+........
+........
+........
+........
+........
+........
+........
+
+# 8 DOOR_FRAME - marco de puerta / pedestal
+GGGGGGGG
+GGGGGGGG
+DDDDDDDD
+DDGDDGDD
+DDGDDGDD
+DDGDDGDD
+DDGDDGDD
+DDDDDDDD
+
+# 9 STEAM - tuberia de vapor (danina intermitente)
+........
+........
+........
+........
+GGGGGGGG
+CCCCCCCC
+KGKKKKGK
+KGKKKKGK
+
+# 10 PARALLAX - fondo lejano (capa BG1): ladrillo apagado, sin contraste,
+# para que se lea como profundidad y no compita con el nivel jugable.
+ssssssss
+sSSSssss
+sSSSssss
+ssssssss
+ssssssss
+sssssSSS
+sssssSSS
+ssssssss

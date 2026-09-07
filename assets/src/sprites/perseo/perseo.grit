@@ -1,0 +1,19 @@
+# Hoja de frames de Perseo -> tiles de OBJ (sprites de hardware).
+# grit lee este archivo automaticamente al convertir perseo.png.
+#
+#   -gt        graficos como tiles (no bitmap)
+#   -gB4       4bpp: 16 colores por banco de paleta
+#   -Mw2 -Mh2  meta-tiles de 2x2 = frames de 16x16, en el orden que espera
+#              el mapeo 1D de OBJ (DCNT_OBJ_1D)
+#   -pn16      exportar 16 entradas de paleta
+#   -ftc -fh   salida en C + header
+#
+# OJO: grit no acepta comentarios al final de una linea de flags; tienen
+# que ir en lineas propias como estas.
+-gt
+-gB4
+-Mw2
+-Mh2
+-pn16
+-ftc
+-fh

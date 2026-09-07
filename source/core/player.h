@@ -62,4 +62,36 @@ typedef struct PlayerInput {
 void player_init(Player *p, fx_t spawn_x, fx_t spawn_y);
 void player_update(Player *p, const Level *lv, const PlayerInput *in);
 
+/* ---------- Animación ----------
+   Índices de frame en la hoja de Perseo (assets/src/sprites/perseo/perseo.png).
+   El orden lo fija SPRITE_GROUPS en tools/spritegen/ascii_to_png.py, y queda
+   registrado en el .json que acompaña al PNG: si se reordena la hoja, hay que
+   actualizar este enum. */
+typedef enum PlayerFrame {
+    PFRAME_IDLE1 = 0, PFRAME_IDLE2,
+    PFRAME_WALK1, PFRAME_WALK2, PFRAME_WALK3, PFRAME_WALK4,
+    PFRAME_JUMP, PFRAME_FALL, PFRAME_DASH,
+    PFRAME_ATK1, PFRAME_ATK2, PFRAME_ATK3,
+    PFRAME_COUNT
+} PlayerFrame;
+
+/* Desplazamiento del sprite (16x16) respecto de la caja de colisión (10x13):
+   lo centra horizontalmente y le deja la cabeza asomando arriba, igual que
+   spr(s, px-3, py-3, ...) en drawPlayer() del prototipo. */
+#define PLAYER_SPRITE_OFFSET_X (-3)
+#define PLAYER_SPRITE_OFFSET_Y (-3)
+
+typedef struct PlayerAnim {
+    uint8_t frame;   /* PlayerFrame */
+    int8_t bob;      /* 1 px de hundido en las fases de contacto al caminar */
+    bool flip_h;     /* mirando a la izquierda */
+    bool hidden;     /* parpadeo de invulnerabilidad (se usa desde la Fase 4) */
+} PlayerAnim;
+
+/* Elige el frame a mostrar. `tick` es el contador global de frames del juego,
+   necesario para el parpadeo del idle (que en el prototipo dependía de `frame`).
+   Vive en core/ a propósito: qué pose corresponde a cada estado es una decisión
+   de juego, no de hardware — la capa GBA sólo la traduce a atributos de OAM. */
+PlayerAnim player_get_anim(const Player *p, uint32_t tick);
+
 #endif /* PERSEO_CORE_PLAYER_H */

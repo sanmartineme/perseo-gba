@@ -91,21 +91,23 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 3 — Pipeline de assets y Nivel 1 real
 
-- [ ] **F3-01** Extraer la paleta `COL{}` ([index.html:45-57](index.html#L45-L57)) a un archivo de referencia común para las herramientas (`tools/`).
-- [ ] **F3-02** Escribir `tools/spritegen/ascii_to_png.py`: convierte cualquier `SPR.*` (copiado/extraído de `index.html`) a PNG indexado con la paleta de referencia.
-- [ ] **F3-03** Generar los PNG de Perseo (idle, walk 1-4, jump, fall, dash, atk 1-3) con el script.
-- [ ] **F3-04** Generar el PNG del tileset de mundo (los 9 `id` de `drawTile`, [index.html:1159-1213](index.html#L1159-L1213)), redibujados una vez como tiles estáticos de 8×8.
-- [ ] **F3-05** Crear los `.grit` de configuración para el sprite sheet de Perseo y el tileset de Nivel 1.
-- [ ] **F3-06** Integrar `grit` como paso `pregen` del `Makefile` (salida a `assets/gen/`).
-- [ ] **F3-07** Escribir `tools/levelgen/schema_nivel.md`: define el formato `.json` de nivel (rects tipo `carve()` + lista de entidades tipo `E()`).
-- [ ] **F3-08** Migrar `buildLevel1()` ([index.html:1261-1307](index.html#L1261-L1307)) a `assets/src/levels/level01.json` siguiendo ese esquema.
-- [ ] **F3-09** Escribir `tools/levelgen/levelgen.py`: parsea el `.json` y genera `source/core/level/level01_tuneles.h` (tilemap empaquetado 1 byte/tile + array de entidades iniciales).
-- [ ] **F3-10** Cargar el tileset y sprites generados de verdad en `pal_gba_video.c` (reemplazando los placeholders de la Fase 2).
-- [ ] **F3-11** Cargar `level01_tuneles.h` en `core/level.c` y renderizar el tilemap real del Nivel 1.
-- [ ] **F3-12** Reemplazar el sprite placeholder del jugador por el ciclo de animación real (idle/walk/jump/fall) usando los frames generados en F3-03.
-- [ ] **F3-13** Recorrer el Nivel 1 completo (sin enemigos ni jefe) y comparar visualmente contra el prototipo web.
+- [x] **F3-01** Extraer la paleta `COL{}` del prototipo. *(`tools/common/prototype.py`: lee la paleta y los 56 sprites directo del HTML del prototipo, cuantizando cada color a 5 bits por canal — lo que la GBA puede mostrar de verdad — y deja `tools/common/palette_gba.json` como referencia para el resto del pipeline.)*
+- [x] **F3-02** `tools/spritegen/ascii_to_png.py`: convierte el arte ASCII a PNG indexado (≤16 colores, índice 0 transparente), listo para 4bpp.
+- [x] **F3-03** Hoja de Perseo generada: 12 frames de 16×16 (idle 1-2, walk 1-4, jump, fall, dash, atk 1-3) en `assets/src/sprites/perseo/perseo.png`, con sólo 6 colores.
+- [x] **F3-04** Tileset del Nivel 1 generado. *(Los tiles del prototipo eran **procedurales** — `drawTile()` dibujaba con `fillRect`, no había imagen que extraer — así que se transcribieron a mano a `assets/src/tiles/tileset_tuneles.txt`, un formato ASCII editable con las mismas claves de paleta, y de ahí salen el PNG y los datos. 11 tiles, 16 colores exactos.)*
+- [x] **F3-05** `.grit` de configuración para ambas imágenes. *(Viven **junto a cada PNG**, no en `tools/grit_configs/` como decía el plan: grit los descubre solo por nombre, lo que evita tener que pasar rutas a mano y que se desincronicen. Ojo con una trampa que costó un rato: grit **no** acepta comentarios al final de una línea de flags — hay que ponerlos en líneas propias, o la flag se ignora en silencio y la imagen sale a 8bpp.)*
+- [x] **F3-06** grit integrado al `Makefile`. *(Como reglas de dependencia normales — `assets/src/**.png → assets/gen/*.c` — no como un paso manual: al tocar un PNG, `make` regenera y recompila solo. Hubo que fijar `.DEFAULT_GOAL := all` porque las reglas del pipeline se declaran antes que `all` y make tomaba un `.c` generado como objetivo por defecto.)*
+- [x] **F3-07** `tools/levelgen/schema_nivel.md` con el formato `.json` de nivel documentado.
+- [x] **F3-08** `buildLevel1()` migrado a `assets/src/levels/level01.json`: 24 rectángulos de `carve` + 28 entidades, transcritos 1:1 del prototipo.
+- [x] **F3-09** `tools/levelgen/levelgen.py`: genera el par `.h`/`.c` con el tilemap horneado (8800 bytes en ROM) y el array de entidades iniciales. *(Se emite un `.c` además del `.h` para que el dato viva en una sola unidad de traducción, y los generados se versionan: así compilar no requiere tener Python instalado.)*
+- [x] **F3-10** `pal_gba_video.c` carga el tileset y los sprites reales. *(Al ordenar el tileset igual que los `TileId`, el id de tile del nivel **es** el índice del gráfico: la función de traducción que había en la Fase 2 desapareció.)*
+- [x] **F3-11** El Nivel 1 real (200×44) se carga y renderiza. *(De paso queda ejercitado el streaming **vertical** del mapa grande, que la sala de prueba de la Fase 2 — de sólo 20 tiles de alto — no llegaba a probar: 44 > 32 filas del buffer circular.)*
+- [x] **F3-12** Animación real del jugador. *(La selección de frame vive en `core/player.c` (`player_get_anim`), portada de `drawPlayer()` con sus mismos tiempos y el "contoneo" de 1 px del ciclo de caminata; la capa GBA sólo la traduce a atributos de OAM, incluido el volteo por hardware.)*
+- [x] **F3-13** Recorrido verificado en emulador: Perseo se ve con su arte real (ojos amarillos, orejas rosadas, pañuelo rojo) sobre el ladrillo de los Túneles, con paralaje detrás; camina, salta, se voltea, cae por el pozo al corredor inferior y recorre el nivel sin un solo tile corrupto.
 
-**Criterio de cierre de fase:** Nivel 1 reconocible y recorrible de punta a punta en hardware/emulador.
+**Pendiente consciente:** el jugador puede caerse del mundo y seguir cayendo, porque la muerte por caída al vacío (`if(P.y>LV.h*8+40)` en el prototipo) es parte del sistema de daño de la **Fase 4**, igual que los pinchos y el lodo que ya están dibujados en el nivel pero todavía no hacen nada.
+
+**Criterio de cierre de fase:** ✅ cumplido — el Nivel 1 es reconocible y recorrible, con el arte del prototipo, en emulador.
 
 ---
 

@@ -5,13 +5,16 @@
    Fase 1: loop a 60Hz + física real del jugador, con un render de
    depuración en Modo 3 (rectángulos) que ya se descarta acá.
 
-   Fase 2 (docs/TAREAS_MIGRACION_GBA.md, F2-01..F2-10): renderer real en
-   Modo 0 — BG2 es el tilemap colisionable del nivel (streaming de
-   "mapa grande", ver source/platform/gba/pal_gba_video.c), BG1 una
-   capa de paralaje simple, y el jugador es un sprite OBJ de hardware
-   en vez de un rectángulo dibujado a mano. La sala de prueba de esta
-   fase (level_get_scroll_test_room) es deliberadamente más ancha que
-   un screenblock de hardware para ejercitar el mecanismo de scroll.
+   Fase 2: renderer real en Modo 0 — BG2 es el tilemap colisionable del
+   nivel (streaming de "mapa grande", ver
+   source/platform/gba/pal_gba_video.c), BG1 una capa de paralaje, y el
+   jugador un sprite OBJ de hardware.
+
+   Fase 3 (docs/TAREAS_MIGRACION_GBA.md, F3-10..F3-13): se cambian las
+   salas de prueba por el **Nivel 1 real** (Túneles de Filtración,
+   200x44 tiles, generado desde assets/src/levels/level01.json) y los
+   placeholders de color sólido por el arte de verdad: el tileset del
+   nivel y los 12 frames de animación de Perseo.
 
    NOTA de arquitectura: este archivo sigue siendo el único con permiso
    para incluir <tonc.h>. Toda la física (source/core/player.c) y la
@@ -21,6 +24,7 @@
 #include <tonc.h>
 #include "core/fixed.h"
 #include "core/level/level.h"
+#include "core/level/level01_tuneles.h"
 #include "core/camera.h"
 #include "core/player.h"
 #include "platform/pal.h"
@@ -31,7 +35,7 @@ int main(void) {
 
     pal_video_init();
 
-    const Level *lv = level_get_scroll_test_room();
+    const Level *lv = &level01_tuneles;
 
     Player player;
     player_init(&player,
@@ -45,6 +49,8 @@ int main(void) {
 
     Camera cam;
     camera_init(&cam);
+
+    uint32_t tick = 0;
 
     while (1) {
         VBlankIntrWait();
@@ -63,7 +69,10 @@ int main(void) {
         int cam_x = fx_to_int(cam.x), cam_y = fx_to_int(cam.y);
         pal_video_sync_level(lv, cam_x, cam_y);
         pal_video_set_parallax_scroll(cam_x, cam_y);
-        pal_video_set_player_sprite(fx_to_int(player.x) - cam_x, fx_to_int(player.y) - cam_y);
+
+        PlayerAnim anim = player_get_anim(&player, tick);
+        pal_video_draw_player(&anim, fx_to_int(player.x) - cam_x, fx_to_int(player.y) - cam_y);
+        tick++;
     }
 
     return 0;

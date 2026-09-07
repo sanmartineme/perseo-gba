@@ -25,19 +25,24 @@ include $(DEVKITARM)/base_tools
 # Se revierte a /bin/sh, que no tiene ese problema.
 SHELL := /bin/sh
 
+# Las reglas del pipeline de assets se declaran antes que `all`, asi que hay
+# que fijar el objetivo por defecto explicitamente: si no, make tomaria como
+# goal el primer target del archivo (un .c generado) y no construiria la ROM.
+.DEFAULT_GOAL := all
+
 #---------------------------------------------------------------------------------
 # TARGET   : nombre del binario final (sin extensión)
 # BUILD    : carpeta de artefactos intermedios (objetos, .elf, .gba)
 # SOURCES  : carpetas con código fuente C (una por módulo, ver source/)
 # INCLUDES : carpetas con headers propios y de terceros
-# DATA     : carpetas con binarios ya generados (assets/gen) — se suman cuando
-#            el pipeline de assets (docs/PLAN_MIGRACION_GBA_C.md, sección 5)
-#            empiece a producir archivos .bin reales.
+# GENDIR   : salida del pipeline de assets (grit). No se versiona: se
+#            regenera sola desde assets/src/ con las reglas de más abajo.
 # LIBS     : librerías externas a enlazar
 # LIBDIRS  : dónde buscar esas librerías (headers y .a)
 #---------------------------------------------------------------------------------
 TARGET      := perseo
 BUILD       := build
+GENDIR      := assets/gen
 SOURCES     := source \
                source/core \
                source/core/enemies \
@@ -45,8 +50,7 @@ SOURCES     := source \
                source/core/level \
                source/platform/gba \
                source/ui
-INCLUDES    := include source $(DEVKITPRO)/libtonc/include third_party/libtonc/include
-DATA        := assets/gen
+INCLUDES    := include source $(GENDIR) $(DEVKITPRO)/libtonc/include third_party/libtonc/include
 LIBS        := -ltonc
 LIBDIRS     := $(DEVKITPRO)/libtonc third_party/libtonc
 
@@ -71,10 +75,37 @@ LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 export TMP  := $(CURDIR)/$(BUILD)/tmp
 export TEMP := $(CURDIR)/$(BUILD)/tmp
 
-vpath %.c $(SOURCES)
+#---------------------------------------------------------------------------------
+# Pipeline de assets (Fase 3, ver docs/PLAN_MIGRACION_GBA_C.md sección 5)
+#
+# assets/src/**.png  --grit-->  assets/gen/*.c + *.h  --gcc-->  ROM
+#
+# Los .png son la fuente de verdad editable (los genera una vez
+# tools/spritegen/ascii_to_png.py a partir del prototipo, y de ahí en más
+# los edita quien haga el arte). Las opciones de conversión de cada imagen
+# viven en el .grit que la acompaña, que grit lee solo.
+#---------------------------------------------------------------------------------
+GEN_C := $(GENDIR)/perseo.c $(GENDIR)/tileset_tuneles.c
+GEN_H := $(GEN_C:.c=.h)
 
-CFILES := $(foreach dir,$(SOURCES),$(wildcard $(dir)/*.c))
+$(GENDIR)/perseo.c $(GENDIR)/perseo.h: assets/src/sprites/perseo/perseo.png assets/src/sprites/perseo/perseo.grit
+	@mkdir -p $(GENDIR)
+	$(SILENTMSG) grit $(notdir $<)
+	$(SILENTCMD)grit $< -o $(GENDIR)/perseo
+
+$(GENDIR)/tileset_tuneles.c $(GENDIR)/tileset_tuneles.h: assets/src/tiles/tileset_tuneles.png assets/src/tiles/tileset_tuneles.grit
+	@mkdir -p $(GENDIR)
+	$(SILENTMSG) grit $(notdir $<)
+	$(SILENTCMD)grit $< -o $(GENDIR)/tileset_tuneles
+
+vpath %.c $(SOURCES) $(GENDIR)
+
+CFILES := $(foreach dir,$(SOURCES),$(wildcard $(dir)/*.c)) $(GEN_C)
 OFILES := $(addprefix $(BUILD)/,$(notdir $(CFILES:.c=.o)))
+
+# Nadie compila hasta que existan los headers generados (en un build limpio
+# todavía no hay .d de dependencias que lo garantice).
+$(OFILES): | $(GEN_H)
 
 .PHONY: all clean pregen run
 
@@ -97,16 +128,18 @@ $(BUILD)/$(TARGET).gba: $(BUILD)/$(TARGET).elf
 	$(SILENTCMD)gbafix $@ -t$(GAME_TITLE) -c$(GAME_CODE) -m$(MAKER_CODE)
 
 #---------------------------------------------------------------------------------
-# pregen: genera source/core/level/*.h y assets/gen/** a partir de assets/src/
-# y de los scripts de tools/, ANTES de compilar. Ver docs/PLAN_MIGRACION_GBA_C.md
-# sección 5 (pipeline de datos y assets). Vacío por ahora: se llena a medida que
-# existan esos scripts (Fase 3 del checklist).
-#---------------------------------------------------------------------------------
+# pregen: re-siembra el arte desde el prototipo y regenera los datos de nivel.
+# NO hace falta para compilar: los .png de assets/src/ y los niveles
+# generados en source/core/level/ están versionados. Sólo se corre al
+# tocar un .json de nivel o al querer volver a partir del prototipo.
+PYTHON ?= python3
+
 pregen:
-	@echo "(pendiente: tools/spritegen y tools/levelgen, ver Fase 3 del checklist)"
+	$(PYTHON) tools/spritegen/ascii_to_png.py
+	$(PYTHON) tools/levelgen/levelgen.py assets/src/levels/ source/core/level/
 
 clean:
 	@echo clean ...
-	@rm -rf $(BUILD)
+	@rm -rf $(BUILD) $(GENDIR)
 
 -include $(OFILES:.o=.d)

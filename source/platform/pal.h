@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../core/level/level.h"
+#include "../core/player.h"
 
 /* ---------- Input (Fase 1) ----------
    Mapeo de botones según docs/PLAN_MIGRACION_GBA_C.md, sección 6:
@@ -64,10 +65,12 @@ void pal_video_sync_level(const Level *lv, int cam_x, int cam_y);
    (drawParallax() del prototipo). */
 void pal_video_set_parallax_scroll(int cam_x, int cam_y);
 
-/* Sprite del jugador (OBJ real de hardware, no un rectángulo dibujado a
-   mano como en la Fase 1). scr_x/scr_y ya en coordenadas de pantalla
-   (posición de mundo menos cámara). */
-void pal_video_set_player_sprite(int scr_x, int scr_y);
+/* Dibuja a Perseo como OBJ de hardware con el frame que le corresponde.
+   `anim` lo decide core/player.c (player_get_anim); acá sólo se traduce a
+   atributos de OAM. scr_x/scr_y son la esquina de su caja de colisión ya
+   en coordenadas de pantalla (posición de mundo menos cámara): el
+   desplazamiento del sprite respecto de la caja lo aplica esta función. */
+void pal_video_draw_player(const PlayerAnim *anim, int scr_x, int scr_y);
 
 /* ---------- Audio (Fase 6) ---------- */
 void pal_audio_init(void);

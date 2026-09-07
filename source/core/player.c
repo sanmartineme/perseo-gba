@@ -188,3 +188,28 @@ void player_update(Player *p, const Level *lv, const PlayerInput *in) {
          - Ganchito Mortal / Lanzamiento de Traza -> Fase 4 (F4-03/F4-04).
          - Reliquias (Pata de la Suerte, etc.) -> Fase 7. */
 }
+
+/* Traducción directa de drawPlayer() del prototipo (línea ~2318): misma
+   prioridad de estados y mismos tiempos. Las poses de ataque ya están en la
+   hoja de sprites y contempladas en el enum, pero todavía no se pueden
+   seleccionar porque el jugador aún no tiene contadores de combate — eso
+   llega con el Ganchito Mortal en la Fase 4 (F4-03). */
+PlayerAnim player_get_anim(const Player *p, uint32_t tick) {
+    PlayerAnim a = { PFRAME_IDLE1, 0, p->face < 0, false };
+
+    if (p->dash_t > 0 || p->spun) {
+        a.frame = PFRAME_DASH;
+    } else if (!p->on_ground) {
+        a.frame = (p->vy < 0) ? PFRAME_JUMP : PFRAME_FALL;
+    } else if (p->walking) {
+        /* Ciclo de 4 fases, una cada 4 frames, con "contoneo" de 1 px en las
+           fases de contacto (1 y 3) — el vaivén de peso que pide
+           docs/Estilo_Grafico_Perseo.md. */
+        uint32_t wf = (p->walk_anim >> 2) & 3;
+        a.frame = (uint8_t)(PFRAME_WALK1 + wf);
+        a.bob = (wf == 1 || wf == 3) ? 1 : 0;
+    } else {
+        a.frame = ((tick >> 5) & 1) ? PFRAME_IDLE1 : PFRAME_IDLE2;
+    }
+    return a;
+}

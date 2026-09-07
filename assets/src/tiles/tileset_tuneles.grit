@@ -1,0 +1,7 @@
+# Tileset de fondo del Nivel 1 -> tiles de BG.
+# Sin meta-tiles: los tiles de fondo se indexan de a uno (8x8), y el
+# tilemap lo genera tools/levelgen, no grit.
+-gt
+-gB4
+-pn16
+-ftc -fh

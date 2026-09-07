@@ -1,0 +1,28 @@
+{
+  "frame_size": [
+    16,
+    16
+  ],
+  "frames": [
+    "p_idle1",
+    "p_idle2",
+    "p_walk1",
+    "p_walk2",
+    "p_walk3",
+    "p_walk4",
+    "p_jump",
+    "p_fall",
+    "p_dash",
+    "p_atk1",
+    "p_atk2",
+    "p_atk3"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "K",
+    "2": "L",
+    "3": "P",
+    "4": "R",
+    "5": "Y"
+  }
+}
