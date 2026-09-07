@@ -85,6 +85,7 @@ void ui_hud_draw(const Game *g) {
        durante el juego normal, no encima de un cartel o un diálogo. */
     if (g->state == GS_PLAY && g->zone_t > 0 && g->world.lv->name) {
         int w = ui_text_width(g->world.lv->name) + 4;
+        if (w > UI_COLS) w = UI_COLS;
         int col = (UI_COLS - w) / 2;
         ui_text_panel(col, 3, w, 3, UI_FILL_DARK, false);
         ui_text_center(4, UI_CYAN, g->world.lv->name);

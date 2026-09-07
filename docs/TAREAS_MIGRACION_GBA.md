@@ -207,15 +207,25 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 8 — Resto de niveles
 
-- [ ] **F8-01** Nivel 2, La Ciudad Vertedero: `.json` + tileset/paralaje propios + validación jugable.
-- [ ] **F8-02** Nivel 3, Estación Abandonada.
-- [ ] **F8-03** Nivel 4, Zona de Residuos Tóxicos.
-- [ ] **F8-04** Nivel 5, Madriguera Subterránea (incluye la aparición única de El Sicario).
-- [ ] **F8-05** Nivel 6, Cámara de Comercio / Mercado Negro (nivel de transición sin jefe).
-- [ ] **F8-06** Nivel 7, El Trono de Betty.
-- [ ] **F8-07** Validar el enlace completo entre los 7 niveles vía puertas/checkpoints, de principio a fin.
+**Cómo se hizo, y por qué así.** Los siete niveles del prototipo son *código*: `buildLevel1()`..`buildLevel7()`, unas 130 llamadas a `carve()` y 190 a `E()`. Transcribir cinco a mano es teclear ~1.600 números, y un nivel mal copiado **no falla al compilar**: falla cuando alguien no puede pasar de un salto, semanas después. Así que se extraen con `tools/levelgen/prototype_to_json.py`, que reconoce las cinco formas que usan los constructores y **falla explícitamente ante cualquier otra cosa** — si el prototipo cambiara y apareciera un bucle, es mejor enterarse ahí que generar un nivel al que le falta medio pasillo.
 
-**Criterio de cierre de fase:** el juego completo (7 niveles + 6 jefes) es recorrible sin cortes.
+El extractor se validó contra los dos niveles que ya estaban escritos a mano: el **Nivel 2 sale byte a byte idéntico**, y el Nivel 1 difiere en una sola cosa, que es una adaptación deliberada — la descripción del santuario del dash decía "Pulsa C", una tecla de PC que en GBA no existe. Esa comprobación se puede repetir con `--check`.
+
+- [x] **F8-01** Nivel 2, La Ciudad Vertedero. Ya existía su `.json`; lo que faltaba era su aspecto propio, y eso llegó con las paletas por nivel (abajo).
+- [x] **F8-02** Nivel 3, Estación Abandonada — 170x44, 20 rectángulos, 33 entidades.
+- [x] **F8-03** Nivel 4, Zona de Residuos Tóxicos — 175x44, 26 rectángulos, 29 entidades.
+- [x] **F8-04** Nivel 5, Madriguera Subterránea — 180x44, 15 rectángulos, 33 entidades. Confirmada la aparición única del Sicario (`brute`): sólo hay una en los siete niveles.
+- [x] **F8-05** Nivel 6, Cámara de Comercio (Mercado Negro) — 180x44, 15 rectángulos, 30 entidades. **La tarea decía "nivel de transición sin jefe" y eso no es lo que hace el prototipo**: el Nivel 6 tiene a EL GUARDIA, el quinto jefe. Se portó como está en el original; la descripción de la tarea estaba equivocada.
+- [x] **F8-06** Nivel 7, El Trono de Betty — 190x44, 17 rectángulos, 30 entidades.
+- [~] **F8-07** Enlace completo. **Lo que faltaba no era un dato sino código**: al caer un jefe se abría el paso sellado pero no aparecía la puerta al nivel siguiente, así que el juego se quedaba encerrado en la arena. Ahora `world_boss_defeated()` deja la puerta donde dicen los datos del nivel (`exit`), con el nivel destino que trae `BOSS_CONFIGS`, y en el caso de Betty una `vdoor` que abre el desenlace en vez de otro nivel. **Validado estructuralmente** con `tools/levelgen/check_chain.py`: recorrido 0→1→2→3→4→5→6 sin niveles inalcanzables, cada nivel con su aparición en aire y no dentro de la roca, cada arena con su `bossgate` completo y cada jefe con su `exit`. **No validado jugándolo de punta a punta**, porque la inyección de teclas en el emulador sigue sin funcionar en este entorno.
+
+**Un tileset, siete paletas.** Cada nivel del prototipo tiene un `theme` de dos colores — el ladrillo y su sombra — y con eso cambia de aspecto entero. No se generaron siete tilesets: el dibujo de los once tiles es el mismo en todos, así que `ascii_to_png.py` emite una tabla de siete paletas y la capa de vídeo intercambia la paleta de fondo al cargar el nivel. **32 bytes copiados una vez por nivel**, en vez de siete tilesets ocupando VRAM y ROM.
+
+**Verificado en emulador:** los cinco niveles nuevos arrancan, con su geometría, sus entidades (carteles, lámparas, enemigos, chapas, lodo tóxico) y su paleta propia — gris azulado, verdoso, oliva, tierra, púrpura y granate. Se capturaron con builds temporales que arrancan en cada nivel; el código temporal se revirtió.
+
+**Corregido de paso:** "Cámara de Comercio (Mercado Negro)" son 34 tiles en una pantalla de 30, y `ui_text_center()` lo recortaba por los dos lados — la peor opción, porque no se leía ni el principio. Ahora un texto que no entra se ancla a la izquierda.
+
+**Criterio de cierre de fase:** el juego completo (7 niveles + 6 jefes) es recorrible sin cortes. *Estado real:* el recorrido existe entero y está validado como grafo, pero **nadie lo ha jugado de principio a fin todavía** — ni yo (no puedo) ni tú. Esa partida completa es lo que hace falta antes de dar la fase por cerrada del todo, y es también la mejor forma de encontrar lo que la Fase 9 tenga que pulir.
 
 ---
 

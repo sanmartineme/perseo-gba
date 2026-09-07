@@ -235,7 +235,12 @@ void ui_text_put(int col, int row, UiColor c, const char *s) {
 }
 
 void ui_text_center(int row, UiColor c, const char *s) {
-    ui_text_put((UI_COLS - ui_text_width(s)) / 2, row, c, s);
+    /* Si no entra, se ancla a la izquierda y se corta por la derecha:
+       "Cámara de Comercio (Mercado Negro)" son 34 tiles en una pantalla
+       de 30, y centrarla la recortaba por los DOS lados, que es la
+       manera de que no se lea ni el principio. */
+    int col = (UI_COLS - ui_text_width(s)) / 2;
+    ui_text_put(col < 0 ? 0 : col, row, c, s);
 }
 
 void ui_text_panel(int col, int row, int w, int h, UiFill fill, bool border) {

@@ -1,0 +1,381 @@
+{
+  "id": "level07_trono",
+  "name": "El Trono de Betty",
+  "size": [
+    190,
+    44
+  ],
+  "fill": 1,
+  "spawn": [
+    4,
+    37
+  ],
+  "theme": {
+    "brick": "h",
+    "brickD": "K"
+  },
+  "song": "lvl7",
+  "story": [
+    "El corazón de Silencio. Todo lo que Perseo ha cruzado — cloacas, chatarra, vías muertas, veneno y madrigueras — termina aquí, ante el Trono de Betty.",
+    "OBJETIVO: Cruza la última guarida y enfréntate a Betty. Trae a Aurorita a casa."
+  ],
+  "carve": [
+    [
+      2,
+      30,
+      185,
+      39,
+      0
+    ],
+    [
+      26,
+      8,
+      180,
+      23,
+      0
+    ],
+    [
+      4,
+      8,
+      25,
+      23,
+      0
+    ],
+    [
+      26,
+      20,
+      27,
+      23,
+      0
+    ],
+    [
+      165,
+      8,
+      169,
+      39,
+      0
+    ],
+    [
+      100,
+      24,
+      108,
+      29,
+      0
+    ],
+    [
+      35,
+      34,
+      38,
+      39,
+      6
+    ],
+    [
+      65,
+      33,
+      68,
+      39,
+      6
+    ],
+    [
+      95,
+      35,
+      98,
+      39,
+      6
+    ],
+    [
+      125,
+      34,
+      128,
+      39,
+      6
+    ],
+    [
+      150,
+      33,
+      153,
+      39,
+      6
+    ],
+    [
+      45,
+      39,
+      48,
+      39,
+      3
+    ],
+    [
+      80,
+      39,
+      83,
+      39,
+      3
+    ],
+    [
+      140,
+      39,
+      145,
+      39,
+      9
+    ],
+    [
+      138,
+      37,
+      139,
+      37,
+      2
+    ],
+    [
+      142,
+      35,
+      143,
+      35,
+      2
+    ],
+    [
+      146,
+      37,
+      147,
+      37,
+      2
+    ]
+  ],
+  "entities": [
+    {
+      "type": "sign",
+      "at": [
+        10,
+        38
+      ],
+      "text": "El Trono de Betty. El olor de Aurorita está por todas partes... está viva. Está cerca."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        40,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        90,
+        38
+      ],
+      "text": "Los lugartenientes cayeron uno a uno. Solo queda Betty entre Perseo y su hermana."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        150,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        175,
+        22
+      ],
+      "text": "Tras esa puerta, el fin de Silencio... o el fin de Perseo."
+    },
+    {
+      "type": "bossgate",
+      "at": [
+        26,
+        20
+      ],
+      "gate": [
+        26,
+        8,
+        27,
+        23
+      ],
+      "passage": [
+        26,
+        20,
+        27,
+        23
+      ],
+      "yband": [
+        60,
+        200
+      ]
+    },
+    {
+      "type": "boss",
+      "at": [
+        6,
+        20
+      ],
+      "boss": "betty",
+      "exit": [
+        6,
+        21
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        30,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        72,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        118,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        160,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        50,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        105,
+        22
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        155,
+        38
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        60,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        100,
+        16
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        135,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        170,
+        16
+      ]
+    },
+    {
+      "type": "gunner",
+      "at": [
+        115,
+        38
+      ],
+      "param": -1
+    },
+    {
+      "type": "gunner",
+      "at": [
+        165,
+        22
+      ],
+      "param": 1
+    },
+    {
+      "type": "chapa",
+      "at": [
+        24,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        55,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        78,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        110,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        122,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        145,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        158,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        175,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        40,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        90,
+        34
+      ]
+    }
+  ]
+}

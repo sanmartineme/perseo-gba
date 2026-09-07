@@ -94,6 +94,13 @@ int main(void) {
             cam_x += (int)(w->tick & 1) ? w->shake / 2 : -w->shake / 2;
         }
 
+        /* La paleta sólo cambia al cambiar de zona; compararla sale más
+           barato que copiar 32 bytes cada frame. */
+        static int last_level = -1;
+        if ((int)g_game.level_index != last_level) {
+            last_level = (int)g_game.level_index;
+            pal_video_set_level_palette(last_level);
+        }
         pal_video_set_mosaic(transition_mosaic(&g_game));
         pal_video_show_sprites(!state_hides_sprites(g_game.state));
         pal_video_sync_level(w->lv, cam_x, cam_y);

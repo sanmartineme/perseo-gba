@@ -1,0 +1,389 @@
+{
+  "id": "level05_madriguera",
+  "name": "Madriguera Subterránea",
+  "size": [
+    180,
+    44
+  ],
+  "fill": 1,
+  "spawn": [
+    4,
+    37
+  ],
+  "theme": {
+    "brick": "o",
+    "brickD": "K"
+  },
+  "song": "lvl5",
+  "story": [
+    "Túneles cavados a garra y diente, territorio de los matones de Betty. Aquí manda EL GUARDIÁN, el más grande de todos.",
+    "OBJETIVO: Atraviesa la Madriguera y derriba al Guardián. Aurorita está cada vez más cerca."
+  ],
+  "carve": [
+    [
+      2,
+      30,
+      175,
+      39,
+      0
+    ],
+    [
+      26,
+      8,
+      170,
+      23,
+      0
+    ],
+    [
+      4,
+      8,
+      25,
+      23,
+      0
+    ],
+    [
+      26,
+      20,
+      27,
+      23,
+      0
+    ],
+    [
+      155,
+      8,
+      159,
+      39,
+      0
+    ],
+    [
+      95,
+      24,
+      102,
+      29,
+      0
+    ],
+    [
+      30,
+      34,
+      33,
+      39,
+      6
+    ],
+    [
+      60,
+      32,
+      63,
+      39,
+      6
+    ],
+    [
+      90,
+      35,
+      93,
+      39,
+      6
+    ],
+    [
+      120,
+      33,
+      123,
+      39,
+      6
+    ],
+    [
+      140,
+      36,
+      143,
+      39,
+      6
+    ],
+    [
+      45,
+      39,
+      48,
+      39,
+      3
+    ],
+    [
+      75,
+      39,
+      78,
+      39,
+      3
+    ],
+    [
+      110,
+      39,
+      112,
+      39,
+      3
+    ],
+    [
+      150,
+      39,
+      153,
+      39,
+      3
+    ]
+  ],
+  "entities": [
+    {
+      "type": "sign",
+      "at": [
+        10,
+        38
+      ],
+      "text": "Madriguera Subterránea. Cada sombra aquí tiene dientes."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        40,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        85,
+        38
+      ],
+      "text": "Los matones de Betty patrullan estos túneles día y noche. No hay descanso."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        115,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        145,
+        22
+      ],
+      "text": "EL GUARDIÁN protege la entrada al Mercado Negro. Nadie pasa sin pelear."
+    },
+    {
+      "type": "bossgate",
+      "at": [
+        26,
+        20
+      ],
+      "gate": [
+        26,
+        8,
+        27,
+        23
+      ],
+      "passage": [
+        26,
+        20,
+        27,
+        23
+      ],
+      "yband": [
+        60,
+        200
+      ]
+    },
+    {
+      "type": "boss",
+      "at": [
+        6,
+        20
+      ],
+      "boss": "maton",
+      "exit": [
+        6,
+        21
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        35,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        70,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        105,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        135,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        160,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        20,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        55,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        95,
+        22
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        130,
+        22
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        50,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        90,
+        16
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        125,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        150,
+        16
+      ]
+    },
+    {
+      "type": "gunner",
+      "at": [
+        150,
+        22
+      ],
+      "param": -1
+    },
+    {
+      "type": "gunner",
+      "at": [
+        95,
+        38
+      ],
+      "param": 1
+    },
+    {
+      "type": "brute",
+      "at": [
+        165,
+        38
+      ],
+      "param": -1
+    },
+    {
+      "type": "chapa",
+      "at": [
+        22,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        52,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        65,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        100,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        113,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        128,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        148,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        165,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        38,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        80,
+        20
+      ]
+    }
+  ]
+}

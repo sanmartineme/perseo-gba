@@ -218,7 +218,74 @@ def emit_tileset(txt_path, pal):
     }
     out.with_suffix(".json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(f"  {out.relative_to(REPO)}  {len(tiles)} tiles, {len(char_index) + 1} colores")
-    return meta
+    return meta, char_index
+
+
+# ---------------------------------------------------------------------
+# Paletas de nivel
+# ---------------------------------------------------------------------
+# Cada nivel del prototipo tiene su `theme` — dos colores, el ladrillo y
+# su sombra — y con eso cambia de aspecto entero: cloacas grises, chatarra
+# marron, estacion verdosa, veneno, tierra, mercado, trono.
+#
+# Aca NO se genera un tileset por nivel. El dibujo de los once tiles es el
+# mismo en los siete; lo unico que cambia son dos colores. Asi que se
+# emite una tabla de siete paletas de 16 colores y la capa de video
+# intercambia la paleta de fondo al cargar un nivel: 32 bytes copiados una
+# vez por nivel, en vez de siete tilesets ocupando VRAM y ROM.
+#
+# El tileset esta dibujado con el tema del Nivel 1 ('T' ladrillo, 't'
+# sombra), asi que esos dos indices son los que se sustituyen.
+BRICK_CHAR, BRICK_DARK_CHAR = "T", "t"
+
+
+def emit_level_palettes(pal, char_index):
+    levels = sorted((REPO / "assets" / "src" / "levels").glob("*.json"))
+    if not levels:
+        return
+    rows = []
+    for path in levels:
+        spec = json.loads(path.read_text(encoding="utf-8"))
+        theme = spec.get("theme", {})
+        colors = [0] * 16
+        for ch, idx in char_index.items():
+            colors[idx] = rgb15(pal[ch])
+        for key, ch in (("brick", BRICK_CHAR), ("brickD", BRICK_DARK_CHAR)):
+            if theme.get(key) and ch in char_index:
+                if theme[key] not in pal:
+                    raise RuntimeError(f"{path.name}: color de tema desconocido {theme[key]!r}")
+                colors[char_index[ch]] = rgb15(pal[theme[key]])
+        rows.append((spec.get("id", path.stem), spec.get("name", ""), theme, colors))
+
+    out = [
+        "/* ARCHIVO GENERADO por tools/spritegen/ascii_to_png.py - no editar a mano.",
+        "   Fuente: el campo `theme` de cada assets/src/levels/*.json y la",
+        "   paleta COL{} del prototipo.",
+        "",
+        "   Un tileset, siete paletas. Los once tiles se dibujan igual en",
+        "   todos los niveles; lo unico que cambia entre zonas son el color",
+        "   del ladrillo y el de su sombra, asi que en vez de siete tilesets",
+        "   se intercambia la paleta de fondo al cargar el nivel. */",
+        "#include <stdint.h>",
+        "",
+        f"#define LEVEL_PALETTE_COUNT {len(rows)}",
+        "",
+        "const uint16_t LEVEL_PALETTES[LEVEL_PALETTE_COUNT][16] = {",
+    ]
+    for ident, name, theme, colors in rows:
+        out.append(f"    /* {name} — ladrillo '{theme.get('brick', '?')}',"
+                   f" sombra '{theme.get('brickD', '?')}' */")
+        out.append("    { " + ", ".join(f"0x{c:04X}" for c in colors) + " },")
+    out.append("};")
+
+    dst = REPO / "source" / "platform" / "gba" / "level_palettes.c"
+    dst.write_text("\n".join(out) + "\n", encoding="utf-8")
+    print(f"  {dst.relative_to(REPO)}  {len(rows)} paletas de nivel")
+
+
+def rgb15(c):
+    r, g, b = c
+    return (r & 31) | ((g & 31) << 5) | ((b & 31) << 10)
 
 
 def main():
@@ -244,7 +311,8 @@ def main():
 
     print("Tilesets:")
     for txt in sorted((REPO / "assets" / "src" / "tiles").glob("*.txt")):
-        emit_tileset(txt, pal)
+        _meta, tile_chars = emit_tileset(txt, pal)
+        emit_level_palettes(pal, tile_chars)
 
 
 if __name__ == "__main__":

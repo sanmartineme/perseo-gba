@@ -188,6 +188,18 @@ void pal_video_sync_level(const Level *lv, int cam_x, int cam_y) {
     REG_BG2VOFS = cam_y;
 }
 
+/* La tabla la genera tools/spritegen/ascii_to_png.py a partir del
+   `theme` de cada nivel. */
+#define LEVEL_PALETTE_COUNT 7
+extern const uint16_t LEVEL_PALETTES[LEVEL_PALETTE_COUNT][16];
+
+void pal_video_set_level_palette(int level_index) {
+    if (level_index < 0 || level_index >= LEVEL_PALETTE_COUNT) level_index = 0;
+    /* Sólo el banco 0 de fondo: es el del tileset. Los bancos 8-15 son
+       de la capa de interfaz (pal_gba_text.c) y no se tocan. */
+    memcpy16(pal_bg_mem, LEVEL_PALETTES[level_index], 16);
+}
+
 void pal_video_set_mosaic(int amount) {
     if (amount < 0) amount = 0;
     if (amount > 15) amount = 15;

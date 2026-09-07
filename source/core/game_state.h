@@ -64,7 +64,7 @@ typedef struct GameInput {
     bool select_pressed;
 } GameInput;
 
-#define GAME_LEVEL_COUNT 2   /* los niveles 3-7 llegan en la Fase 8 */
+#define GAME_LEVEL_COUNT 7
 
 typedef struct Game {
     GameState state;

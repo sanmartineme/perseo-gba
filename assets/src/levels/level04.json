@@ -1,0 +1,436 @@
+{
+  "id": "level04_residuos",
+  "name": "Zona de Residuos Tóxicos",
+  "size": [
+    175,
+    44
+  ],
+  "fill": 1,
+  "spawn": [
+    4,
+    37
+  ],
+  "theme": {
+    "brick": "v",
+    "brickD": "S"
+  },
+  "song": "lvl4",
+  "story": [
+    "Charcos que brillan en la oscuridad y vapores que arden en los pulmones. Aquí vive EL TÓXICO, lo que queda de un animal que Betty desechó.",
+    "OBJETIVO: Sortea los residuos tóxicos y silencia a esa pobre criatura para continuar."
+  ],
+  "carve": [
+    [
+      2,
+      30,
+      170,
+      39,
+      0
+    ],
+    [
+      26,
+      8,
+      165,
+      23,
+      0
+    ],
+    [
+      4,
+      8,
+      25,
+      23,
+      0
+    ],
+    [
+      26,
+      20,
+      27,
+      23,
+      0
+    ],
+    [
+      150,
+      8,
+      154,
+      39,
+      0
+    ],
+    [
+      12,
+      38,
+      22,
+      39,
+      4
+    ],
+    [
+      14,
+      37,
+      15,
+      37,
+      2
+    ],
+    [
+      18,
+      35,
+      19,
+      35,
+      2
+    ],
+    [
+      40,
+      38,
+      55,
+      39,
+      4
+    ],
+    [
+      42,
+      37,
+      43,
+      37,
+      2
+    ],
+    [
+      46,
+      35,
+      47,
+      35,
+      2
+    ],
+    [
+      51,
+      37,
+      52,
+      37,
+      2
+    ],
+    [
+      70,
+      38,
+      88,
+      39,
+      4
+    ],
+    [
+      72,
+      37,
+      73,
+      37,
+      2
+    ],
+    [
+      77,
+      34,
+      78,
+      34,
+      2
+    ],
+    [
+      83,
+      37,
+      84,
+      37,
+      2
+    ],
+    [
+      105,
+      38,
+      120,
+      39,
+      4
+    ],
+    [
+      107,
+      37,
+      108,
+      37,
+      2
+    ],
+    [
+      112,
+      35,
+      113,
+      35,
+      2
+    ],
+    [
+      117,
+      37,
+      118,
+      37,
+      2
+    ],
+    [
+      130,
+      38,
+      145,
+      39,
+      4
+    ],
+    [
+      132,
+      37,
+      133,
+      37,
+      2
+    ],
+    [
+      137,
+      35,
+      138,
+      35,
+      2
+    ],
+    [
+      142,
+      37,
+      143,
+      37,
+      2
+    ],
+    [
+      60,
+      23,
+      64,
+      23,
+      3
+    ],
+    [
+      110,
+      23,
+      113,
+      23,
+      3
+    ]
+  ],
+  "entities": [
+    {
+      "type": "sign",
+      "at": [
+        10,
+        38
+      ],
+      "text": "Zona de Residuos Tóxicos. Nada crece aquí, salvo el miedo y el moho."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        35,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        65,
+        38
+      ],
+      "text": "Algo respira en ese charco. Algo que ya no debería seguir vivo."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        100,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        140,
+        22
+      ],
+      "text": "EL TÓXICO no habla. Solo queda hambre donde antes hubo un animal."
+    },
+    {
+      "type": "bossgate",
+      "at": [
+        26,
+        20
+      ],
+      "gate": [
+        26,
+        8,
+        27,
+        23
+      ],
+      "passage": [
+        26,
+        20,
+        27,
+        23
+      ],
+      "yband": [
+        60,
+        200
+      ]
+    },
+    {
+      "type": "boss",
+      "at": [
+        6,
+        20
+      ],
+      "boss": "toxico",
+      "exit": [
+        6,
+        21
+      ]
+    },
+    {
+      "type": "mosq",
+      "at": [
+        20,
+        34
+      ]
+    },
+    {
+      "type": "mosq",
+      "at": [
+        48,
+        20
+      ]
+    },
+    {
+      "type": "mosq",
+      "at": [
+        80,
+        34
+      ]
+    },
+    {
+      "type": "mosq",
+      "at": [
+        115,
+        20
+      ]
+    },
+    {
+      "type": "mosq",
+      "at": [
+        138,
+        34
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        30,
+        38
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        95,
+        38
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        150,
+        38
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        55,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        100,
+        16
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        135,
+        14
+      ]
+    },
+    {
+      "type": "gunner",
+      "at": [
+        145,
+        38
+      ],
+      "param": 1
+    },
+    {
+      "type": "chapa",
+      "at": [
+        16,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        44,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        75,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        80,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        110,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        135,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        150,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        160,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        30,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        120,
+        20
+      ]
+    }
+  ]
+}

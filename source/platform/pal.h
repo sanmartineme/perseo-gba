@@ -92,6 +92,12 @@ void pal_video_draw_world(const World *w, int cam_x, int cam_y);
    existe en el hardware y no cuesta nada. */
 void pal_video_set_mosaic(int amount);
 
+/* Cambia la paleta de fondo a la de un nivel. Los siete comparten el
+   mismo tileset y se diferencian sólo por el color del ladrillo y su
+   sombra (ver source/platform/gba/level_palettes.c), así que cambiar de
+   zona cuesta 32 bytes copiados, no un tileset nuevo. */
+void pal_video_set_level_palette(int level_index);
+
 /* Apaga la capa de objetos: las pantallas de menú y de historia tapan el
    juego, y los sprites tienen prioridad sobre los fondos, así que se
    colarían por encima del texto. */

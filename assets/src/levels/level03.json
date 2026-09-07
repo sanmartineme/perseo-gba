@@ -1,0 +1,422 @@
+{
+  "id": "level03_estacion",
+  "name": "Estación Abandonada",
+  "size": [
+    170,
+    44
+  ],
+  "fill": 1,
+  "spawn": [
+    4,
+    37
+  ],
+  "theme": {
+    "brick": "G",
+    "brickD": "S"
+  },
+  "song": "lvl3",
+  "story": [
+    "Vagones oxidados duermen sobre vías que ya nadie usa. EL REVISOR cobra un peaje que nadie puede pagar dos veces.",
+    "OBJETIVO: Cruza la Estación Abandonada y derrota al Revisor para seguir el rastro de Aurorita."
+  ],
+  "carve": [
+    [
+      2,
+      30,
+      165,
+      39,
+      0
+    ],
+    [
+      26,
+      8,
+      159,
+      23,
+      0
+    ],
+    [
+      4,
+      8,
+      25,
+      23,
+      0
+    ],
+    [
+      26,
+      20,
+      27,
+      23,
+      0
+    ],
+    [
+      141,
+      8,
+      145,
+      39,
+      0
+    ],
+    [
+      95,
+      24,
+      100,
+      29,
+      0
+    ],
+    [
+      20,
+      36,
+      23,
+      39,
+      6
+    ],
+    [
+      80,
+      33,
+      84,
+      39,
+      6
+    ],
+    [
+      120,
+      35,
+      124,
+      39,
+      6
+    ],
+    [
+      50,
+      39,
+      58,
+      39,
+      9
+    ],
+    [
+      100,
+      39,
+      108,
+      39,
+      9
+    ],
+    [
+      150,
+      39,
+      152,
+      39,
+      9
+    ],
+    [
+      49,
+      37,
+      50,
+      37,
+      2
+    ],
+    [
+      54,
+      35,
+      55,
+      35,
+      2
+    ],
+    [
+      58,
+      37,
+      59,
+      37,
+      2
+    ],
+    [
+      99,
+      37,
+      100,
+      37,
+      2
+    ],
+    [
+      104,
+      35,
+      105,
+      35,
+      2
+    ],
+    [
+      108,
+      37,
+      109,
+      37,
+      2
+    ],
+    [
+      35,
+      39,
+      37,
+      39,
+      3
+    ],
+    [
+      130,
+      39,
+      132,
+      39,
+      3
+    ]
+  ],
+  "entities": [
+    {
+      "type": "sign",
+      "at": [
+        10,
+        38
+      ],
+      "text": "Estación Abandonada. Los trenes dejaron de llegar hace generaciones... salvo el olor a miedo."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        30,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        95,
+        38
+      ],
+      "text": "El tercer riel aún tiene corriente. Nadie sabe por qué. Nadie quiere averiguarlo."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        130,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        150,
+        22
+      ],
+      "text": "EL REVISOR no deja pasar a nadie sin \"boleto\". Betty se encarga de que nunca sobren."
+    },
+    {
+      "type": "bossgate",
+      "at": [
+        26,
+        20
+      ],
+      "gate": [
+        26,
+        8,
+        27,
+        23
+      ],
+      "passage": [
+        26,
+        20,
+        27,
+        23
+      ],
+      "yband": [
+        60,
+        200
+      ]
+    },
+    {
+      "type": "boss",
+      "at": [
+        6,
+        20
+      ],
+      "boss": "revisor",
+      "exit": [
+        6,
+        21
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        15,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        45,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        90,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        115,
+        38
+      ]
+    },
+    {
+      "type": "rat",
+      "at": [
+        145,
+        38
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        35,
+        22
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        70,
+        22
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        110,
+        22
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        135,
+        22
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        60,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        90,
+        12
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        125,
+        16
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        145,
+        14
+      ]
+    },
+    {
+      "type": "mosq",
+      "at": [
+        55,
+        34
+      ]
+    },
+    {
+      "type": "mosq",
+      "at": [
+        100,
+        34
+      ]
+    },
+    {
+      "type": "gunner",
+      "at": [
+        140,
+        22
+      ],
+      "param": -1
+    },
+    {
+      "type": "chapa",
+      "at": [
+        18,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        47,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        65,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        75,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        92,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        108,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        122,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        136,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        150,
+        18
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        160,
+        34
+      ]
+    }
+  ]
+}

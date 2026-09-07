@@ -7,6 +7,11 @@
 #include "../platform/pal.h"
 #include "level/level01_tuneles.h"
 #include "level/level02_vertedero.h"
+#include "level/level03_estacion.h"
+#include "level/level04_residuos.h"
+#include "level/level05_madriguera.h"
+#include "level/level06_mercado.h"
+#include "level/level07_trono.h"
 
 /* DIFF_CFG del prototipo. Ojo con "fácil": su dmgTaken de 0.5 no reduce
    nada cuando el golpe vale 1 (Math.round(0.5) es 1), que es el caso de
@@ -20,11 +25,16 @@ const DiffCfg DIFF_CFGS[DIFF_COUNT] = {
 
 const char *const DIFF_LABELS[DIFF_COUNT] = { "FÁCIL", "NORMAL", "DIFÍCIL" };
 
-/* Los niveles que existen hoy. La tabla es el único sitio que hay que
-   tocar cuando la Fase 8 genere los cinco que faltan. */
+/* El recorrido completo. Los siete salen de assets/src/levels/*.json,
+   extraídos del prototipo por tools/levelgen/prototype_to_json.py. */
 static const Level *const LEVELS[GAME_LEVEL_COUNT] = {
     &level01_tuneles,
     &level02_vertedero,
+    &level03_estacion,
+    &level04_residuos,
+    &level05_madriguera,
+    &level06_mercado,
+    &level07_trono,
 };
 
 #define TRANS_FRAMES 26   /* por cada mitad: cerrar y abrir */

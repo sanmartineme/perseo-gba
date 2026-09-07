@@ -1,0 +1,367 @@
+{
+  "id": "level06_mercado",
+  "name": "Cámara de Comercio (Mercado Negro)",
+  "size": [
+    180,
+    44
+  ],
+  "fill": 1,
+  "spawn": [
+    4,
+    37
+  ],
+  "theme": {
+    "brick": "m",
+    "brickD": "K"
+  },
+  "song": "lvl6",
+  "story": [
+    "Jaulas apiladas hasta el techo, cadenas oxidadas y el murmullo de animales asustados. EL GUARDIA vigila la entrada al Trono de Betty.",
+    "OBJETIVO: Cruza el Mercado Negro, encuentra a Aurorita y derrota al Guardia."
+  ],
+  "carve": [
+    [
+      2,
+      30,
+      175,
+      39,
+      0
+    ],
+    [
+      26,
+      8,
+      170,
+      23,
+      0
+    ],
+    [
+      4,
+      8,
+      25,
+      23,
+      0
+    ],
+    [
+      26,
+      20,
+      27,
+      23,
+      0
+    ],
+    [
+      155,
+      8,
+      159,
+      39,
+      0
+    ],
+    [
+      70,
+      24,
+      77,
+      29,
+      0
+    ],
+    [
+      35,
+      34,
+      38,
+      39,
+      6
+    ],
+    [
+      65,
+      33,
+      68,
+      39,
+      6
+    ],
+    [
+      95,
+      35,
+      98,
+      39,
+      6
+    ],
+    [
+      130,
+      34,
+      133,
+      39,
+      6
+    ],
+    [
+      105,
+      20,
+      106,
+      23,
+      1
+    ],
+    [
+      105,
+      8,
+      106,
+      19,
+      5
+    ],
+    [
+      50,
+      39,
+      52,
+      39,
+      3
+    ],
+    [
+      115,
+      39,
+      117,
+      39,
+      3
+    ],
+    [
+      145,
+      39,
+      147,
+      39,
+      3
+    ]
+  ],
+  "entities": [
+    {
+      "type": "sign",
+      "at": [
+        10,
+        38
+      ],
+      "text": "Cámara de Comercio. El Mercado Negro de Betty: jaulas, cadenas y silencio comprado."
+    },
+    {
+      "type": "lamp",
+      "at": [
+        45,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        80,
+        38
+      ],
+      "text": "Una jaula vacía, todavía tibia. Un lazo rojo enredado en los barrotes... ¡es de Aurorita!"
+    },
+    {
+      "type": "lamp",
+      "at": [
+        120,
+        38
+      ]
+    },
+    {
+      "type": "sign",
+      "at": [
+        150,
+        22
+      ],
+      "text": "EL GUARDIA es la última puerta antes del Trono de Betty. No dará un paso atrás."
+    },
+    {
+      "type": "bossgate",
+      "at": [
+        26,
+        20
+      ],
+      "gate": [
+        26,
+        8,
+        27,
+        23
+      ],
+      "passage": [
+        26,
+        20,
+        27,
+        23
+      ],
+      "yband": [
+        60,
+        200
+      ]
+    },
+    {
+      "type": "boss",
+      "at": [
+        6,
+        20
+      ],
+      "boss": "guardia",
+      "exit": [
+        6,
+        21
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        30,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        60,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        100,
+        38
+      ]
+    },
+    {
+      "type": "thug",
+      "at": [
+        140,
+        38
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        45,
+        22
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        90,
+        22
+      ]
+    },
+    {
+      "type": "roach",
+      "at": [
+        135,
+        22
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        55,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        95,
+        16
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        130,
+        14
+      ]
+    },
+    {
+      "type": "bat",
+      "at": [
+        150,
+        16
+      ]
+    },
+    {
+      "type": "gunner",
+      "at": [
+        110,
+        38
+      ],
+      "param": 1
+    },
+    {
+      "type": "gunner",
+      "at": [
+        155,
+        22
+      ],
+      "param": -1
+    },
+    {
+      "type": "chapa",
+      "at": [
+        24,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        55,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        72,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        100,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        113,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        125,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        148,
+        34
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        165,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        40,
+        20
+      ]
+    },
+    {
+      "type": "chapa",
+      "at": [
+        85,
+        34
+      ]
+    }
+  ]
+}

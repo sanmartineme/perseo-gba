@@ -183,16 +183,40 @@ void world_carve(World *w, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8
     level_carve(&w->level_rt, x0, y0, x1, y1, id);
 }
 
+/* Al caer un jefe: se abre el paso que había sellado y aparece la puerta
+   al nivel siguiente, justo donde los datos del nivel dicen (`exit`). La
+   de Betty es distinta — no lleva a otro nivel, abre el desenlace — y por
+   eso es una ENT_VDOOR. Sin esto el juego se quedaba encerrado en la
+   arena del jefe, que es exactamente lo que faltaba para poder recorrer
+   los siete niveles de una sentada. */
+/* Declarada acá porque world_boss_defeated() la necesita y su
+   definición vive más abajo, junto al resto de las interacciones. */
+static void post_event(World *w, WorldEventKind kind,
+                       const char *title, const char *desc, int16_t param);
+
 void world_boss_defeated(World *w) {
+    Entity *boss = w->boss;
     w->boss_active = false;
-    audio_play_sfx(SFX_DOOR);
-    audio_play_song(w->lv->song);
     w->boss = 0;
+
     if (w->boss_gate && w->boss_gate->spawn) {
         const int16_t *p = w->boss_gate->spawn->passage;
         world_carve(w, p[0], p[1], p[2], p[3], TILE_EMPTY);
     }
     w->boss_gate = 0;
+
+    if (!boss || !boss->spawn) return;
+    const BossConfig *cfg = boss_config_of(boss);
+    Entity *door = entity_pool_alloc(cfg->is_final ? ENT_VDOOR : ENT_DOOR);
+    if (door) {
+        door->x = fx_from_int((int32_t)boss->spawn->exit_tx * TILE_SIZE);
+        door->y = fx_from_int((int32_t)boss->spawn->exit_ty * TILE_SIZE);
+        door->param = cfg->next_level;
+    }
+
+    audio_play_sfx(SFX_DOOR);
+    if (!cfg->is_final) audio_play_song((SongId)w->lv->song);
+    post_event(w, WEV_BANNER, cfg->victory_title, cfg->victory_desc, 0);
 }
 
 void world_load(World *w, const Level *lv) {
