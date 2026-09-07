@@ -191,7 +191,7 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 - [x] **F7-13** Las lámparas son puntos de control y **guardan solas** al encenderse; morir devuelve a la última, aunque esté en otro nivel.
 - [~] **F7-14** Prueba end-to-end **verificada a medias, y de la mitad que importa**: una ROM temporal escribió un progreso reconocible, se cerró el emulador, y al volver a arrancar la partida guardada seguía ahí — el título ofrece CONTINUAR y el volcado de `perseo.sav` contiene exactamente lo escrito (dificultad DIFÍCIL, habilidades `0b101`, checkpoint en el nivel 1 tile 42,31, 37 chapas, 9 muertes). Lo que **no** está verificado es pulsar CONTINUAR y seguir jugando, porque la inyección de teclas en VBA-M sigue sin funcionar en este entorno.
 
-**Deuda conocida del guardado.** La sección 10 del plan incluía además `collected_chapas[]` y `broken_tiles[][]`, máscaras de bits por nivel. No están, a propósito: dependen de la posición exacta de cada chapa y de cada tile rompible, que se fijan al generar los niveles, y hoy existen dos de los siete. Fijar ese formato ahora es fijarlo para romperlo en la Fase 8. Consecuencia real: al cargar, las chapas ya recogidas vuelven a estar en el mapa (el contador sí se conserva), y las rejillas rotas vuelven a estar enteras.
+**Deuda conocida del guardado — SALDADA después de la Fase 10.** La sección 10 del plan incluía además `collected_chapas[]` y `broken_tiles[][]`, máscaras de bits por nivel. En su momento se dejaron fuera a propósito: dependen de la posición exacta de cada chapa y de cada tile rompible, que se fijan al generar los niveles, y entonces existían dos de los siete — fijar ese formato habría sido fijarlo para romperlo en la Fase 8. Con los siete niveles en su sitio se pudo cerrar; ver el apartado *Deuda saldada* al final de este archivo.
 
 **Arte nuevo (no estaba en la lista, pero sin esto los santuarios eran invisibles).** El pipeline de sprites se amplió con un banco `props`: santuario 16x16, puerta 16x32 (el arte es de 16x24 y `emit_sheet` rellena el resto), lámpara encendida/apagada 8x16 y las tres reliquias 8x8, todo sacado del prototipo. El cartel es la excepción: el prototipo lo dibujaba con tres rectángulos sueltos sobre el canvas, así que se reprodujo esa misma forma como sprite propio (`EXTRA_ART` en `ascii_to_png.py`), con sus mismos colores.
 
@@ -406,6 +406,58 @@ desde aquí.** Lo que depende del código está hecho y medido; lo que queda
 depende de una persona con un mando y de una consola con un flashcart. Es la
 única fase del port cuyo criterio de cierre está fuera del alcance de quien
 la escribió, y conviene que quede dicho así y no disimulado con un tick.
+
+---
+
+## Deuda saldada: las chapas y las rejillas ya se guardan
+
+Fuera de las diez fases, porque es trabajo que **estaba esperando a que las
+fases terminaran**. La Fase 7 dejó anotado que el guardado no llevaba
+`collected_chapas[]` ni `broken_tiles[][]`, y dio el motivo: esas máscaras
+dependen de la posición exacta de cada chapa y de cada tile rompible, y
+entonces existían dos de los siete niveles. Fijar el formato antes de la Fase
+8 habría sido fijarlo para romperlo. Con los siete niveles en su sitio, el
+motivo caducó.
+
+**Qué pasaba.** Al recargar una partida, las chapas ya recogidas volvían a
+estar en el mapa y las rejillas que uno había roto con el dash volvían a
+estar enteras. En un metroidvania eso no es un detalle: la rejilla rota *es*
+el atajo que uno se ganó.
+
+**Cómo se numeran.** Un bit por chapa y por rejilla de cada nivel, en el
+orden en que aparecen en los datos: las chapas por su posición en la lista de
+entidades, las rejillas recorriendo el tilemap por filas. Ese orden lo fija
+el generador y sólo cambia si cambia el nivel — que es exactamente cuando uno
+QUIERE que un guardado viejo deje de valer, y para eso sube `SAVE_VERSION`.
+
+Las rejillas se numeran sobre el tilemap **original**, no sobre el de la
+partida: si se contaran sobre el de la partida, cada rotura correría la
+numeración de las que quedan y el guardado dejaría de significar lo mismo.
+
+**Los topes están holgados a propósito.** Con 32 bits para las rejillas, el
+nivel 1 ya iba 30 de 32: quien añadiera tres más se encontraría con que
+reaparecen al recargar, y lo descubriría jugando. Ampliarlos a 32 chapas y 64
+rejillas cuesta 56 bytes de una SRAM de 32 KB — sale mucho más barato quitar
+el límite que documentarlo. Y aun así `check_chain.py` los comprueba y
+**falla** si un nivel se pasa, con el número y el nombre de la constante: un
+tope silencioso es un tope que muerde. Ahora el informe imprime también
+cuánto margen queda en cada nivel.
+
+**Romper y anotar no se pueden separar.** La rotura pasó a `world_break_tile()`
+en vez de quedar suelta en `player.c` llamando a `world_carve()`: una rejilla
+que se rompe sin anotarse vuelve a estar entera al recargar, y eso se
+descubre media hora después.
+
+**Verificado de punta a punta, con el juego apagado en medio.** Una ROM pone
+a Perseo encima de la primera chapa (la recoge por el camino normal, no
+simulado), rompe la primera rejilla con el mismo `world_break_tile()` que usa
+el dash, y guarda: las chapas vivas del nivel pasan de 8 a 7 y las rejillas
+de 30 a 29. Otra ROM distinta arranca, lee la SRAM y muestra 7 y 29 — la
+chapa no volvió y la rejilla sigue rota. Y remedido: sigue sin caerse un
+frame.
+
+**Lo que sigue sin guardarse, y da igual:** los enemigos muertos reaparecen
+al recargar, que es lo normal en el género y lo que hacía el prototipo.
 
 ---
 

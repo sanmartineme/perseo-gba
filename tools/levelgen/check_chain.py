@@ -30,6 +30,11 @@ BOSS_NEXT = {"capataz": 2, "revisor": 3, "toxico": 4, "maton": 5,
              "guardia": 6, "betty": None}
 
 SOLID = {1, 5, 6, 8}
+RUST = 5   # rejilla oxidada: solida, rompible con el dash
+
+# Tienen que coincidir con LEVEL_MAX_SAVED_* de core/level/level.h.
+MAX_SAVED_CHAPAS = 32
+MAX_SAVED_BREAKABLES = 64
 
 
 def build_grid(spec):
@@ -60,6 +65,22 @@ def main():
         # 1. El punto de aparicion no puede estar dentro de la roca.
         if grid[sy][sx] in SOLID:
             problems.append(f"{fname}: la aparicion ({sx},{sy}) cae en roca solida")
+
+        # 1b. Los topes de las mascaras de progreso (core/level/level.h).
+        #     El guardado lleva un bit por chapa y por rejilla oxidada de
+        #     cada nivel. Si un nivel se pasa del tope, la chapa o la
+        #     rejilla de mas volverian a aparecer al recargar la partida
+        #     y nadie se enteraria hasta jugarlo. Mejor fallar aca.
+        n_chapas = sum(1 for e in ents if e["type"] == "chapa")
+        if n_chapas > MAX_SAVED_CHAPAS:
+            problems.append(f"{fname}: {n_chapas} chapas, y en el guardado "
+                            f"caben {MAX_SAVED_CHAPAS} (ver "
+                            "LEVEL_MAX_SAVED_CHAPAS en core/level/level.h)")
+        n_rust = sum(row.count(RUST) for row in grid)
+        if n_rust > MAX_SAVED_BREAKABLES:
+            problems.append(f"{fname}: {n_rust} rejillas oxidadas, y en el "
+                            f"guardado caben {MAX_SAVED_BREAKABLES} (ver "
+                            "LEVEL_MAX_SAVED_BREAKABLES en core/level/level.h)")
 
         # 2. Salida: puerta explicita o jefe.
         doors = [e for e in ents if e["type"] == "door"]
@@ -101,6 +122,10 @@ def main():
             target = specs[dest][1]["name"] if isinstance(dest, int) and dest < len(specs) \
                 else "EL DESENLACE"
             print(f"     salida por {what} -> {target}")
+        print(f"     {sum(1 for e in spec['entities'] if e['type'] == 'chapa')}"
+              f"/{MAX_SAVED_CHAPAS} chapas   "
+              f"{sum(row.count(RUST) for row in build_grid(spec))}"
+              f"/{MAX_SAVED_BREAKABLES} rejillas  (topes del guardado)")
         print()
 
     # 5. El recorrido debe llegar del 0 al ultimo.

@@ -192,7 +192,7 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
             for (int16_t tx = tx0; tx <= tx1; tx++) {
                 uint8_t id = level_tile_at(lv, tx, ty);
                 if (id == TILE_RUST && p->dash_t > 0) {
-                    world_carve(w, tx, ty, tx, ty, TILE_EMPTY);
+                    world_break_tile(w, tx, ty);
                     particles_burst(fx_from_int((int32_t)tx * TILE_SIZE + 4),
                                     fx_from_int((int32_t)ty * TILE_SIZE + 4),
                                     PCOL_BROWN, 6, FX_C(3.0));

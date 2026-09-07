@@ -157,6 +157,37 @@ void world_touch_player(World *w, Entity *e) {
 
 /* ---------- Recogibles ---------- */
 
+/* Numero de orden de una rejilla oxidada dentro de su nivel: cuantas hay
+   antes que ella recorriendo el tilemap ORIGINAL por filas. Devuelve -1 si
+   ese tile no es una rejilla o si se pasa del tope que cabe en la mascara.
+   Se recorre el mapa entero, pero solo al romper una (rarisimo) y al
+   cargar el nivel, nunca en el camino caliente. */
+static int breakable_ordinal(const World *w, int16_t tx, int16_t ty) {
+    const Level *lv = w->lv;
+    if (!w->src_tiles || tx < 0 || ty < 0 || tx >= lv->w || ty >= lv->h) return -1;
+    int32_t target = (int32_t)ty * lv->w + tx;
+    if (w->src_tiles[target] != TILE_RUST) return -1;
+    int n = 0;
+    for (int32_t i = 0; i < target; i++) {
+        if (w->src_tiles[i] == TILE_RUST) n++;
+    }
+    return n < LEVEL_MAX_SAVED_BREAKABLES ? n : -1;
+}
+
+/* Lo mismo para las chapas, contando sobre la lista de entidades del
+   nivel. `sp` es el spawn que la entidad guarda. */
+static int chapa_ordinal(const World *w, const LevelEntitySpawn *sp) {
+    const Level *lv = w->lv;
+    if (!sp) return -1;
+    int n = 0;
+    for (int i = 0; i < lv->entity_count; i++) {
+        const LevelEntitySpawn *cur = &lv->entities[i];
+        if (cur == sp) return n < LEVEL_MAX_SAVED_CHAPAS ? n : -1;
+        if (cur->type == ENT_CHAPA) n++;
+    }
+    return -1;
+}
+
 static void update_pickup(World *w, Entity *e) {
     Player *p = &w->player;
     Rect box = { e->x, e->y, 8, e->type == ENT_HP ? 7 : 8 };
@@ -166,6 +197,9 @@ static void update_pickup(World *w, Entity *e) {
     fx_t cy = fx_add(e->y, fx_from_int(4));
     if (e->type == ENT_CHAPA) {
         w->chapas++;
+        /* Que no vuelva a estar ahi al recargar la partida. */
+        int ord = chapa_ordinal(w, e->spawn);
+        if (ord >= 0) w->chapas_taken |= (uint32_t)1u << ord;
         particles_burst(cx, cy, PCOL_GOLD, 6, FX_C(2.0));
     } else {
         if (p->hp < p->max_hp) p->hp++;
@@ -220,7 +254,7 @@ void world_boss_defeated(World *w) {
     post_event(w, WEV_BANNER, cfg->victory_title, cfg->victory_desc, 0);
 }
 
-void world_load(World *w, const Level *lv) {
+void world_load(World *w, const Level *lv, uint8_t level_index) {
     /* El tilemap generado vive en ROM; el juego necesita poder cambiarlo
        (romper rejillas, sellar y abrir la arena del jefe), asi que se
        trabaja sobre una copia en RAM. */
@@ -230,6 +264,10 @@ void world_load(World *w, const Level *lv) {
     w->level_rt = *lv;
     w->level_rt.tiles = s_tiles;
     w->lv = &w->level_rt;
+    w->src_tiles = lv->tiles;
+    w->level_index = level_index;
+    w->chapas_taken = 0;
+    w->tiles_broken = 0;
     /* El nivel entra limpio: el cambio de nivel ya fuerza su propio
        redibujado completo. */
     w->tiles_dirty = false;
@@ -415,11 +453,21 @@ static void update_bossgate(World *w, Entity *gate) {
 
 /* ---------- Progreso que sobrevive a recargar el nivel ---------- */
 
+void world_break_tile(World *w, int16_t tx, int16_t ty) {
+    int ord = breakable_ordinal(w, tx, ty);
+    if (ord >= 0) w->tiles_broken |= (uint64_t)1u << ord;
+    world_carve(w, tx, ty, tx, ty, TILE_EMPTY);
+}
+
 void world_take_progress(const World *w, PlayerProgress *pr) {
     pr->ab = w->player.ab;
     pr->relics_found = w->player.relics_found;
     pr->relics_equipped = w->player.relics_equipped;
     pr->chapas = w->chapas;
+    if (w->level_index < LEVEL_COUNT) {
+        pr->chapas_taken[w->level_index] = w->chapas_taken;
+        pr->tiles_broken[w->level_index] = w->tiles_broken;
+    }
 }
 
 void world_place_player(World *w, int16_t tx, int16_t ty) {
@@ -437,6 +485,14 @@ void world_apply_progress(World *w, const PlayerProgress *pr) {
     w->player.relics_equipped = pr->relics_equipped;
     w->chapas = pr->chapas;
 
+    if (w->level_index < LEVEL_COUNT) {
+        w->chapas_taken = pr->chapas_taken[w->level_index];
+        w->tiles_broken = pr->tiles_broken[w->level_index];
+    } else {
+        w->chapas_taken = 0;
+        w->tiles_broken = 0;
+    }
+
     /* Lo ya conseguido no vuelve a aparecer. Sin esto, morir en el nivel
        1 dejaría los dos santuarios otra vez de pie, con su cartel y su
        fanfarria, entregando algo que Perseo ya tiene. */
@@ -448,6 +504,35 @@ void world_apply_progress(World *w, const PlayerProgress *pr) {
         } else if (e->type == ENT_RELIC && e->param < RELIC_COUNT &&
                    (w->player.relics_found & RELIC_BIT(e->param))) {
             entity_pool_free(e);
+        }
+    }
+
+    /* Y las chapas que ya se recogieron en este nivel tampoco. Se
+       recorren por su numero de orden en los datos del nivel, no por el
+       del pool, porque el pool las coloca en el orden en que quepan. */
+    if (w->chapas_taken) {
+        for (int i = 0; i < ENTITY_POOL_CAPACITY; i++) {
+            Entity *e = entity_pool_at(i);
+            if (!e->alive || e->type != ENT_CHAPA) continue;
+            int ord = chapa_ordinal(w, e->spawn);
+            if (ord >= 0 && (w->chapas_taken & ((uint32_t)1u << ord))) entity_pool_free(e);
+        }
+    }
+
+    /* Las rejillas que ya se rompieron vuelven a estar rotas. Un solo
+       recorrido del tilemap, numerando al pasar. */
+    if (w->tiles_broken) {
+        const Level *lv = w->lv;
+        int n = 0;
+        for (int16_t ty = 0; ty < lv->h; ty++) {
+            for (int16_t tx = 0; tx < lv->w; tx++) {
+                if (w->src_tiles[(int32_t)ty * lv->w + tx] != TILE_RUST) continue;
+                if (n < LEVEL_MAX_SAVED_BREAKABLES &&
+                    (w->tiles_broken & ((uint64_t)1u << n))) {
+                    world_carve(w, tx, ty, tx, ty, TILE_EMPTY);
+                }
+                n++;
+            }
         }
     }
 }

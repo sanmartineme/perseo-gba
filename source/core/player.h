@@ -85,6 +85,21 @@ typedef struct PlayerProgress {
     uint8_t relics_found;
     uint8_t relics_equipped;
     int16_t chapas;
+
+    /* Que se llevo ya de cada nivel. Una mascara por nivel, y dentro de
+       cada una un bit por chapa y por rejilla oxidada, numeradas en el
+       orden en que aparecen en los datos del nivel (las chapas, por su
+       orden en la lista de entidades; las rejillas, recorriendo el
+       tilemap por filas). Ese orden lo fija el generador y no cambia
+       salvo que cambie el nivel, que es exactamente cuando uno QUIERE
+       que un guardado viejo deje de valer.
+
+       Sin esto, al recargar una partida las chapas ya recogidas volvian
+       a estar en el mapa y las rejillas rotas volvian a estar enteras.
+       Se pudo hacer recien ahora: fijar este formato antes de que
+       existieran los siete niveles habria sido fijarlo para romperlo. */
+    uint32_t chapas_taken[LEVEL_COUNT];
+    uint64_t tiles_broken[LEVEL_COUNT];
 } PlayerProgress;
 
 bool player_has_ability(const Player *p, AbilityId id);

@@ -25,8 +25,9 @@ const DiffCfg DIFF_CFGS[DIFF_COUNT] = {
 
 const char *const DIFF_LABELS[DIFF_COUNT] = { "FÁCIL", "NORMAL", "DIFÍCIL" };
 
-/* El recorrido completo. Los siete salen de assets/src/levels/*.json,
-   extraídos del prototipo por tools/levelgen/prototype_to_json.py. */
+/* El recorrido completo. Los siete salen de los .json de
+   assets/src/levels, extraídos del prototipo por
+   tools/levelgen/prototype_to_json.py. */
 static const Level *const LEVELS[GAME_LEVEL_COUNT] = {
     &level01_tuneles,
     &level02_vertedero,
@@ -75,6 +76,10 @@ static void game_to_save(const Game *g, SaveData *s) {
     s->chapas = g->progress.chapas;
     s->deaths = g->deaths;
     s->play_frames = g->play_frames;
+    for (int i = 0; i < LEVEL_COUNT; i++) {
+        s->chapas_taken[i] = g->progress.chapas_taken[i];
+        s->tiles_broken[i] = g->progress.tiles_broken[i];
+    }
     (void)p;
     save_seal(s);
 }
@@ -101,7 +106,7 @@ void game_load_level(Game *g, uint8_t index) {
     g->level_index = index;
     /* world_load() ya vacía el pool de entidades (y con él los
        proyectiles) y las partículas: no hace falta limpiarlos acá. */
-    world_load(&g->world, lv);
+    world_load(&g->world, lv, index);
     world_apply_progress(&g->world, &g->progress);
     g->world.dmg_num = DIFF_CFGS[g->difficulty].dmg_num;
     g->world.dmg_den = DIFF_CFGS[g->difficulty].dmg_den;
@@ -129,6 +134,10 @@ bool game_load(Game *g) {
     g->progress.relics_found = s.relics_found;
     g->progress.relics_equipped = s.relics_equipped;
     g->progress.chapas = s.chapas;
+    for (int i = 0; i < LEVEL_COUNT; i++) {
+        g->progress.chapas_taken[i] = s.chapas_taken[i];
+        g->progress.tiles_broken[i] = s.tiles_broken[i];
+    }
     g->deaths = s.deaths;
     g->play_frames = s.play_frames;
     g->has_checkpoint = s.has_checkpoint != 0;

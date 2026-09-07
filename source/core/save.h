@@ -11,28 +11,30 @@
    uno quiere en un juego así — nadie debería perder media hora por no
    haber ido a un menú.
 
-   DESVIACIÓN respecto de la sección 10 del plan: allí el struct llevaba
-   además `collected_chapas[]` y `broken_tiles[][]`, máscaras de bits por
-   nivel. No están. Esas máscaras dependen de la posición exacta de cada
-   chapa y de cada tile rompible, que se fijan al generar los niveles, y
-   hoy sólo existen dos de los siete. Meterlas ahora obligaría a fijar un
-   formato que la Fase 8 rompería en cuanto entren los cinco niveles que
-   faltan. Consecuencia real y conocida: al cargar, las chapas ya
-   recogidas vuelven a estar en el mapa (el contador, en cambio, sí se
-   conserva).
+   Las máscaras `chapas_taken[]` y `tiles_broken[]` que pedía la sección
+   10 del plan estuvieron ausentes hasta la Fase 10, y a propósito:
+   dependen de la posición exacta de cada chapa y de cada tile rompible,
+   que se fijan al generar los niveles, y mientras sólo existían dos de
+   los siete, fijar el formato habría sido fijarlo para romperlo. Con los
+   siete niveles en su sitio ya se pudo cerrar: ahora una chapa recogida
+   no vuelve a aparecer y una rejilla rota sigue rota.
    ===================================================================== */
 #ifndef PERSEO_CORE_SAVE_H
 #define PERSEO_CORE_SAVE_H
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "level/level.h"   /* LEVEL_COUNT */
 
 /* 'PS' de Perseo/Silencio. Si no coincide, la SRAM tiene basura o el
    guardado de otro juego, y se ignora. */
 #define SAVE_MAGIC   0x5053u
 /* Sube cuando cambia el formato: un guardado viejo se descarta en vez de
    leerse mal. */
-#define SAVE_VERSION 1
+/* 2: entraron chapas_taken[] y tiles_broken[]. Un guardado de la
+   versión 1 se descarta en vez de leerse mal — que es justo para lo que
+   está este número. */
+#define SAVE_VERSION 2
 
 typedef struct SaveData {
     uint16_t magic;
@@ -53,6 +55,13 @@ typedef struct SaveData {
     int16_t  chapas;
     uint16_t deaths;
     uint32_t play_frames;
+
+    /* Qué se llevó ya de cada nivel: un bit por chapa y por rejilla
+       oxidada, numeradas en el orden en que aparecen en los datos del
+       nivel. Ver PlayerProgress en core/player.h, que es donde se
+       explica el criterio y dónde vive en marcha. */
+    uint32_t chapas_taken[LEVEL_COUNT];
+    uint64_t tiles_broken[LEVEL_COUNT];
 } SaveData;
 
 /* Suma simple sobre los bytes que siguen al propio checksum. No es

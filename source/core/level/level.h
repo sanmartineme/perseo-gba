@@ -21,6 +21,26 @@
 
 #define TILE_SIZE 8
 
+/* Cuantos niveles tiene el juego. Vive aca y no en game_state.h porque el
+   progreso guardado lleva una mascara por nivel y lo necesita player.h,
+   que no puede incluir la maquina de estados sin dar la vuelta entera. */
+#define LEVEL_COUNT 7
+
+/* Topes de las mascaras de progreso por nivel (ver PlayerProgress): un
+   bit por chapa y por rejilla oxidada. Hoy el maximo real es de 11
+   chapas (nivel 2) y 30 rejillas (nivel 1).
+
+   Estan holgados a proposito. Con 32 bits para las rejillas, el nivel 1
+   ya iba 30 de 32: quien anadiera tres rejillas mas se encontraria con
+   que reaparecen al recargar, y lo descubriria jugando. Ampliarlos
+   cuesta 56 bytes de una SRAM de 32 KB, asi que sale mucho mas barato
+   quitar el limite que documentarlo.
+
+   Aun asi tools/levelgen/check_chain.py los comprueba y falla si un
+   nivel se pasa: un tope silencioso es un tope que muerde. */
+#define LEVEL_MAX_SAVED_CHAPAS 32
+#define LEVEL_MAX_SAVED_BREAKABLES 64
+
 /* Catálogo de tiles: mismos IDs que drawTile()/SOLID[] del prototipo.
    Sólo se listan los que ya importan para colisión; el resto (tuberías
    de vapor con animación, etc.) se agrega cuando el renderer real

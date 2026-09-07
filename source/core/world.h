@@ -64,6 +64,18 @@ typedef struct World {
        de llevar una lista de parches: sale más simple y no cuesta nada en
        el camino caliente de la colisión. */
     Level level_rt;
+    /* El tilemap ORIGINAL, en ROM, sin las roturas de esta partida. Hace
+       falta para numerar las rejillas oxidadas siempre igual: si se
+       contaran sobre level_rt, cada rotura correria la numeracion de las
+       que quedan y el guardado dejaria de significar lo mismo. */
+    const uint8_t *src_tiles;
+    /* Que nivel es este. Lo fija world_load() para que no pueda quedar
+       desincronizado con lo que se cargo. */
+    uint8_t level_index;
+    /* Mascaras del nivel EN CURSO (ver PlayerProgress). Se cargan al
+       entrar y se devuelven al salir. */
+    uint32_t chapas_taken;
+    uint64_t tiles_broken;
     Player player;
     uint32_t tick;
     int16_t shake;      /* sacudida de pantalla pendiente (la consume la cámara) */
@@ -91,12 +103,18 @@ typedef struct World {
     uint8_t dmg_num, dmg_den;
 } World;
 
-void world_load(World *w, const Level *lv);
+void world_load(World *w, const Level *lv, uint8_t level_index);
 
 /* Devuelve al jugador lo que ya tenia y quita del nivel los santuarios y
    reliquias que ya habia recogido, para que no vuelvan a aparecer. Se
    llama justo despues de world_load(). */
 void world_apply_progress(World *w, const PlayerProgress *pr);
+
+/* Rompe una rejilla oxidada y deja constancia para el guardado. Va aca y
+   no suelto en player.c para que romper y anotar no puedan separarse:
+   una rejilla que se rompe sin anotarse vuelve a estar entera al
+   recargar, y eso se descubre media hora despues. */
+void world_break_tile(World *w, int16_t tx, int16_t ty);
 /* Coloca a Perseo en un tile concreto (reaparecer en un punto de
    control). Equivale a placePlayer() del prototipo. */
 void world_place_player(World *w, int16_t tx, int16_t ty);

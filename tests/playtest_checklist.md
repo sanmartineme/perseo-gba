@@ -118,10 +118,14 @@ no es lo mismo que haberlo escuchado.
 | `[x]` | Reaparecer no tira ningún frame | auto |
 | `[ ]` | El contador de muertes y el tiempo de partida cuadran | mano |
 
-**Deuda conocida y aceptada** (Fase 7): al cargar, las chapas ya recogidas
-vuelven a estar en el mapa (el contador sí se conserva) y las rejillas rotas
-vuelven a estar enteras. Falta el `collected_chapas[]` / `broken_tiles[][]`
-del plan.
+| `[x]` | Una chapa recogida **no vuelve a aparecer** al recargar | auto |
+| `[x]` | Una rejilla rota **sigue rota** al recargar | auto |
+
+La deuda que la Fase 7 dejó anotada aquí (las chapas y las rejillas no se
+guardaban) está saldada. Comprobado de punta a punta y con el juego apagado
+en medio: una ROM recoge la chapa y rompe la rejilla por los caminos
+normales y guarda; otra distinta arranca, lee la SRAM y las dos siguen
+como se dejaron.
 
 ## 8. Recorrido completo
 

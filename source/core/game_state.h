@@ -67,7 +67,9 @@ typedef struct GameInput {
     bool debug_held;
 } GameInput;
 
-#define GAME_LEVEL_COUNT 7
+/* El numero vive en level/level.h: lo necesita tambien PlayerProgress,
+   que no puede incluir este header. */
+#define GAME_LEVEL_COUNT LEVEL_COUNT
 
 typedef struct Game {
     GameState state;

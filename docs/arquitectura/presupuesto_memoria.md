@@ -1,6 +1,6 @@
 # Presupuesto de memoria y de frame
 
-Medido sobre la ROM de la Fase 9 (`build/perseo.gba`, 119.500 bytes).
+Medido sobre `build/perseo.gba` (120.324 bytes).
 Los números de memoria salen del ELF enlazado (`arm-none-eabi-readelf -S`,
 `nm -S`) y del reparto de VRAM que fija el código; los de tiempo, del
 medidor de frame que lleva la propia ROM
@@ -14,9 +14,9 @@ Cómo repetir las mediciones: al final, en "Cómo se reproduce esto".
 
 | Recurso | Capacidad | Usado | Libre |
 |---|---:|---:|---:|
-| ROM (cartucho) | 32 MB | 119.500 B (0,4 %) | prácticamente todo |
+| ROM (cartucho) | 32 MB | 120.324 B (0,4 %) | prácticamente todo |
 | EWRAM | 262.144 B | **0 B** | 100 % |
-| IWRAM | 32.768 B | 18.504 B (56 %) | 14.264 B menos la pila |
+| IWRAM | 32.768 B | 18.624 B (57 %) | 14.144 B menos la pila |
 | VRAM de fondos | 65.536 B | 12.640 B (19 %) | 52.896 B |
 | VRAM de sprites | 32.768 B | 9.728 B (30 %) | 23.040 B |
 | Peor frame medido | 100 % | **87,4 %** (nivel 4) | 12,6 % |
@@ -32,11 +32,11 @@ optimizó (y por qué), y qué se dejó sin optimizar con el número delante.
 
 | Sección | Bytes | Qué es |
 |---|---:|---|
-| `.text` | 29.344 | código |
+| `.text` | 30.168 | código |
 | `.rodata` | 89.252 | datos constantes |
 | `.iwram` + `.data` (copias) | 328 | se copian a IWRAM al arrancar |
 | cabecera + relleno de `gbafix` | 580 | |
-| **total** | **119.500** | |
+| **total** | **120.324** | |
 
 Los datos pesan tres veces más que el código, y dentro de los datos mandan
 los siete tilemaps:
@@ -61,9 +61,9 @@ nada. Ver sección 6.
 
 ---
 
-## 3. IWRAM — 18.504 B de 32.768
+## 3. IWRAM — 18.624 B de 32.768
 
-`.bss` + `.data` terminan en `0x03004848`. Por encima queda la pila (que crece hacia
+`.bss` + `.data` terminan en `0x030048C0`. Por encima queda la pila (que crece hacia
 abajo desde `0x03007F00`) y la tabla de interrupciones.
 
 | Símbolo | Bytes | Qué es |

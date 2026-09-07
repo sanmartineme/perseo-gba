@@ -1,5 +1,28 @@
 # Notas de versión
 
+## v1.0-rc2 — candidata a versión
+
+Igual que la rc1 en todo salvo en una cosa, que es la que hacía falta:
+**una chapa recogida ya no vuelve a aparecer al recargar la partida, y una
+rejilla rota sigue rota.** Era la última deuda que las fases habían dejado
+anotada a propósito, esperando a que existieran los siete niveles.
+
+| | |
+|---|---|
+| Archivo | `build/perseo.gba` |
+| Tamaño | 120.324 bytes |
+| MD5 | `ec69f77ffd84c74e96bd580f9a2db4dd` |
+
+**El formato de guardado cambió** (`SAVE_VERSION` 2), así que una partida de
+la rc1 se descarta al arrancar en vez de leerse mal — que es para lo que está
+ese número. Quien viniera jugando con la rc1 empieza de nuevo.
+
+Lo demás — lo que falta para la 1.0, los controles, el rendimiento — sigue
+siendo lo que dice la rc1, aquí abajo, salvo que ya **no** está en la lista
+de pendientes lo de las chapas y las rejillas.
+
+---
+
 ## v1.0-rc1 — candidata a versión
 
 **Es una candidata, no la final.** El juego está completo y se sostiene solo:
@@ -75,11 +98,8 @@ VRAM de fondos al 19 % y de sprites al 30 %.
 - **El sonido, de oído.** La afinación se verificó numéricamente (error
   máximo 0,35 %), pero nadie lo ha escuchado: en el entorno de desarrollo no
   se puede capturar el audio del emulador.
-- **Al recargar una partida, las chapas ya recogidas vuelven a estar en el
-  mapa** (el contador sí se conserva) y las rejillas rotas vuelven a estar
-  enteras. Es una deuda asumida a propósito en la Fase 7: guardar eso exige
-  fijar un formato de máscaras por nivel, y entonces sólo existían dos de los
-  siete niveles.
+- ~~Al recargar, las chapas ya recogidas vuelven a estar en el mapa y las
+  rejillas rotas vuelven a estar enteras.~~ **Saldado en la rc2.**
 - **2.632 bytes de IWRAM** ocupados por las salas de prueba de las Fases 1 y
   2, que ya no llama nadie. Sobra memoria, así que se dejaron por si sirven
   para depurar; borrarlas es una decisión pendiente, no un olvido.
