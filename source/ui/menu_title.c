@@ -14,6 +14,7 @@
    pegada encima.
    ===================================================================== */
 #include "menu_title.h"
+#include "../platform/pal.h"   /* el nombre del boton asignado a cada accion */
 #include "text.h"
 
 /* Letras de 3x5 en bits, una fila por nibble bajo. Sólo hacen falta las
@@ -64,7 +65,7 @@ void ui_title_draw(const Game *g) {
 
     /* Cuatro opciones como mucho: CONTINUAR sólo aparece si hay partida
        guardada, y entonces es la primera. */
-    const char *items[4];
+    const char *items[5];
     char sound[16];
     char diff[24];
     int n = 0;
@@ -89,9 +90,15 @@ void ui_title_draw(const Game *g) {
         *d = 0;
         items[n++] = diff;
     }
+    items[n++] = "OPCIONES";
 
+    /* Cinco filas no caben de dos en dos: con CONTINUAR el menú llega a
+       la fila 20, que ya no existe. A partir de cinco se aprietan a una
+       fila de separación, que sigue lejísimos de estar apretado. */
+    int step = (n >= 5) ? 1 : 2;
+    int top = (n >= 5) ? 11 : 12;
     for (int i = 0; i < n; i++) {
-        int row = 12 + i * 2;
+        int row = top + i * step;
         bool sel = (i == g->title_sel);
         int w = ui_text_width(items[i]);
         int col = (UI_COLS - w) / 2;
@@ -110,4 +117,54 @@ void ui_title_draw(const Game *g) {
     /* Con cuatro opciones la última cae en la fila 18, así que la ayuda
        se reduce a una sola línea. */
     ui_text_center(n >= 4 ? 19 : 18, UI_GREY, "ARRIBA/ABAJO  IZQ/DER  A: OK");
+}
+
+/* ---------------------------------------------------------------------
+   OPCIONES
+   ---------------------------------------------------------------------
+   Una sola pantalla en vez de submenús: son siete filas y caben todas,
+   y así se ve de un vistazo cómo está configurado todo. Las cuatro
+   primeras reasignan botones; las dos siguientes son interruptores.
+   --------------------------------------------------------------------- */
+static const char *const OPT_LABELS[OPT_ROW_COUNT] = {
+    "SALTAR", "GANCHITO", "DASH", "TRAZA", "PODERES", "CLAVES", "VOLVER"
+};
+
+void ui_options_draw(const Game *g) {
+    ui_text_dim(14);
+    ui_text_panel(1, 1, UI_COLS - 2, UI_ROWS - 2, UI_FILL_NONE, true);
+    ui_text_center(2, UI_YELLOW, "OPCIONES");
+
+    for (int i = 0; i < OPT_ROW_COUNT; i++) {
+        int row = 5 + i;
+        bool sel = (i == g->opt_sel);
+        UiColor c = sel ? UI_YELLOW : UI_WHITE;
+        ui_text_put(4, row, c, OPT_LABELS[i]);
+
+        const char *value = 0;
+        if (i <= OPT_THROW) {
+            value = pal_input_button_name(pal_input_binding((InputAction)i));
+        } else if (i == OPT_POWERS) {
+            value = g->opt_all_powers ? "TODOS" : "NORMAL";
+        } else if (i == OPT_CHEATS) {
+            value = g->opt_cheats ? "ON" : "OFF";
+        }
+        if (value) ui_text_put(18, row, sel ? UI_YELLOW : UI_CYAN, value);
+
+        if (sel && ((g->frame >> 4) & 1)) ui_text_put(2, row, UI_YELLOW, ">");
+    }
+
+    /* Las claves sólo se explican cuando están encendidas: si no, es
+       ruido — y contarlas sin querer le arruina el descubrimiento a
+       quien no las buscaba. */
+    if (g->opt_cheats) {
+        ui_text_put(3, 13, UI_GREY, "JUGANDO:");
+        ui_text_put(3, 14, UI_GREEN, "A DER IZQ A");
+        ui_text_put(16, 14, UI_GREY, "INVENCIBLE");
+        ui_text_put(3, 15, UI_GREEN, "IZQ IZQ IZQ B");
+        ui_text_put(17, 15, UI_GREY, "SUPER");
+    }
+
+    ui_text_center(17, UI_GREY, "IZQ/DER CAMBIA");
+    ui_text_center(18, UI_GREY, "B: VOLVER");
 }

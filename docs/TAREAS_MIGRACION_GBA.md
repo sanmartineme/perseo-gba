@@ -462,6 +462,73 @@ al recargar, que es lo normal en el género y lo que hacía el prototipo.
 
 ---
 
+## OPCIONES: controles, poderes y claves
+
+Pedido: una entrada más en el menú principal donde se puedan cambiar los
+controles, dar o quitar los poderes, y activar los códigos secretos de toda
+la vida.
+
+**Una sola pantalla, no submenús.** Son siete filas y caben todas: así se ve
+de un vistazo cómo está configurado todo, sin navegar a ciegas.
+
+| Fila | Qué hace |
+|---|---|
+| SALTAR / GANCHITO / DASH / TRAZA | reasignan las cuatro acciones entre los botones A, B, L y R |
+| PODERES | NORMAL o TODOS: las tres habilidades llave desde el principio |
+| CLAVES | enciende o apaga los códigos |
+| VOLVER | |
+
+**El mapeo no puede degenerar.** Asignar un botón que ya tenía otra acción
+**intercambia** las dos, en vez de dejar una acción sin botón y dos en el
+mismo. Lo resuelve la PAL, que es quien sabe quién tiene qué. Y al cargar una
+partida, si lo que viene de la SRAM no es una permutación de los cuatro
+botones se ignora y quedan los de fábrica: mejor unos controles inesperados
+que una acción imposible de usar.
+
+**Lo que NO se reasigna, a propósito:** el D-Pad, START y SELECT. Mover la
+cruceta no tiene sentido, y dejar los menús sin botón de confirmar tampoco
+— por eso confirmar y cancelar siguen fijos en A y B pase lo que pase con el
+mapeo de juego.
+
+### Las claves
+
+Se escriben **jugando**, y sólo se escuchan si están habilitadas en OPCIONES:
+nadie debería activar un modo invencible sin querer.
+
+| Código | Modo |
+|---|---|
+| A, derecha, izquierda, A | **INVENCIBLE** — Perseo no recibe daño |
+| izquierda, izquierda, izquierda, B | **SUPERSAYAYIN** — invencible, con las tres habilidades y pegando el triple |
+
+Los códigos usan el D-Pad y los botones A y B **fijos**, no los reasignados.
+Si dependieran del mapeo, cambiar los controles cambiaría los códigos y
+dejarían de poder escribirse en ningún sitio.
+
+La pantalla de OPCIONES los lista, pero **sólo cuando las claves están
+encendidas**: contarlos sin que nadie los pida le arruina el hallazgo a quien
+no los buscaba.
+
+**Un fallo que costó ver, y que parecía otra cosa.** Al probar la primera
+clave no pasaba nada: ni cartel ni efecto. La clave se estaba activando
+perfectamente — lo que fallaba era el aviso. El cartel se abría en el mismo
+frame en que se pulsó el botón, y unas líneas más abajo `update_banner()`
+veía ese mismo `confirm_pressed` todavía puesto y lo cerraba en el acto: el
+cartel duraba cero frames. Se arregla cortando el frame ahí mismo. Es el tipo
+de fallo que se diagnostica al revés si uno se fía de lo que ve.
+
+**Qué se guarda y qué no.** Los controles reasignados y los dos interruptores
+van a la SRAM (`SAVE_VERSION` sube a 3, así que un guardado de la rc4 se
+descarta). Las claves **activadas** no se guardan a propósito: se vuelven a
+escribir en un segundo, y nadie quiere descubrir que su partida quedó
+invencible para siempre.
+
+**Verificado en emulador:** la entrada nueva en el menú, la pantalla, el
+intercambio de botones al reasignar, los dos interruptores, las dos claves con
+su cartel, y la ida y vuelta a la SRAM — una ROM escribe una asignación
+distinta y otra la lee de vuelta idéntica.
+
+---
+
 ## Las viñetas ilustradas de la cinemática
 
 Reportado jugando: en el prototipo la introducción dibuja una escena en cada

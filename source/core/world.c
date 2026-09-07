@@ -81,6 +81,8 @@ void world_damage_player(World *w, int amount, int8_t dir) {
     Player *p = &w->player;
     /* En pleno dash Perseo es intocable: es parte de para qué sirve. */
     if (p->inv > 0 || p->dash_t > 0 || p->dead) return;
+    /* Y con la clave puesta, intocable del todo. */
+    if (p->god) return;
 
     if (amount < 1) amount = 1;
     /* Escalado por dificultad, con la misma cuenta que el prototipo:
@@ -119,6 +121,9 @@ void world_hit_enemy(World *w, Entity *e, int amount) {
        copiar al prototipo, que lo suma dentro de hitEnemy(): la traza
        lanzada también se beneficia. */
     if (w->player.relics_equipped & RELIC_BIT(RELIC_COLMILLO)) amount += 1;
+    /* MODO SUPERSAYAYIN: el triple. Va aca por el mismo motivo que el
+       Colmillo, para que la traza lanzada tambien lo aproveche. */
+    if (w->player.super) amount *= 3;
     e->hp -= (int16_t)amount;
     e->flash = 8;
     Rect box = entity_box(e);

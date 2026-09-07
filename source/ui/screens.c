@@ -214,6 +214,7 @@ void ui_screens_draw(const Game *g) {
 
     switch (g->state) {
         case GS_TITLE:     ui_title_draw(g);   break;
+        case GS_OPTIONS:   ui_options_draw(g); break;
         case GS_STORY:     draw_story(g);      break;
         case GS_PLAY:      ui_hud_draw(g);     break;
         case GS_BANNER:    ui_hud_draw(g); draw_banner(g); break;

@@ -70,6 +70,13 @@ typedef struct Player {
 
     PlayerAbilities ab;
 
+    /* --- Modos de clave (ver CheatMode en core/game_state.h) ---
+       Los pone la partida en cada frame, igual que la dificultad. Viven
+       en el jugador y no en Game porque quien tiene que consultarlos es
+       el mundo, que no sabe que Game existe. */
+    bool god;      /* no recibe dano */
+    bool super;    /* ademas pega mucho mas fuerte */
+
     /* --- Reliquias (Fase 7) --- */
     uint8_t relics_found;     /* mascara de RELIC_BIT(id) */
     uint8_t relics_equipped;

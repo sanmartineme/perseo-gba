@@ -35,8 +35,26 @@ typedef enum GameState {
     GS_TRANS,       /* transición mosaico entre niveles */
     GS_ENDING,
     GS_CREDITS,
+    GS_OPTIONS,     /* controles, poderes y claves */
     GS_STATE_COUNT
 } GameState;
+
+/* ---------- Claves ----------
+   El código secreto de toda la vida: una cadena de botones que, tecleada
+   seguida, enciende un modo. Se escuchan sólo si están habilitadas en
+   OPCIONES — un jugador no debería activarlas sin querer.
+
+   Los códigos usan el D-Pad y los botones A y B FIJOS, no los
+   reasignados: si dependieran del mapeo, cambiar los controles cambiaría
+   los códigos y dejarían de poder escribirse en ningún sitio. */
+typedef enum CheatMode {
+    CHEAT_NONE = 0,
+    CHEAT_INVENCIBLE,     /* no recibe daño */
+    CHEAT_SUPER           /* invencible + las tres habilidades + pega el triple */
+} CheatMode;
+
+/* Cuántas pulsaciones se recuerdan para reconocer una clave. */
+#define CHEAT_HISTORY 8
 
 typedef enum Difficulty {
     DIFF_EASY = 0, DIFF_NORMAL, DIFF_HARD, DIFF_COUNT
@@ -130,6 +148,15 @@ typedef struct Game {
     /* --- estadísticas de la partida --- */
     uint16_t deaths;
     uint32_t play_frames;
+
+    /* --- opciones --- */
+    int8_t  opt_sel;          /* fila elegida en la pantalla de OPCIONES */
+    bool    opt_all_powers;   /* dar las tres habilidades desde el principio */
+    bool    opt_cheats;       /* escuchar las claves */
+
+    /* --- claves --- */
+    uint8_t   cheat_hist[CHEAT_HISTORY];  /* últimas pulsaciones, la más nueva al final */
+    uint8_t   cheat_mode;                 /* un CheatMode */
 } Game;
 
 /* Guardado. La partida no sabe que por debajo hay SRAM: llama a estas
@@ -140,6 +167,16 @@ bool game_save(const Game *g);
 bool game_load(Game *g);
 /* ¿Hay una partida guardada? Lo usa el título para ofrecer CONTINUAR. */
 bool game_has_save(void);
+
+/* Filas de la pantalla de OPCIONES. Las cuatro primeras son las acciones
+   reasignables, en el mismo orden que InputAction. */
+typedef enum OptionRow {
+    OPT_JUMP = 0, OPT_ATTACK, OPT_DASH, OPT_THROW,
+    OPT_POWERS,
+    OPT_CHEATS,
+    OPT_BACK,
+    OPT_ROW_COUNT
+} OptionRow;
 
 void game_init(Game *g);
 void game_update(Game *g, const GameInput *in);

@@ -43,6 +43,12 @@ no es lo mismo que haberlo escuchado.
 | `[x]` | "PARTIDA NUEVA" arranca la cinemática de introducción | auto |
 | `[x]` | Con partida guardada aparece "CONTINUAR" | auto (Fase 7) |
 | `[ ]` | "CONTINUAR" carga y **se puede seguir jugando** | mano |
+| `[x]` | OPCIONES abre su pantalla | auto |
+| `[x]` | Reasignar un botón **intercambia** con quien lo tenía | auto |
+| `[x]` | Los controles reasignados sobreviven a apagar la consola | auto |
+| `[x]` | PODERES: TODOS da las tres habilidades | auto |
+| `[x]` | Las dos claves se activan y avisan con su cartel | auto |
+| `[ ]` | Jugar con los controles cambiados se siente bien | mano |
 | `[ ]` | El ajuste de SONIDO se oye | mano |
 | `[ ]` | El ajuste de DIFICULTAD cambia el daño recibido de verdad | mano |
 

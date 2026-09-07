@@ -31,10 +31,11 @@
 #define SAVE_MAGIC   0x5053u
 /* Sube cuando cambia el formato: un guardado viejo se descarta en vez de
    leerse mal. */
-/* 2: entraron chapas_taken[] y tiles_broken[]. Un guardado de la
-   versión 1 se descarta en vez de leerse mal — que es justo para lo que
-   está este número. */
-#define SAVE_VERSION 2
+/* 2: entraron chapas_taken[] y tiles_broken[].
+   3: entraron los controles reasignados y las opciones.
+   Un guardado de una versión vieja se descarta en vez de leerse mal — que
+   es justo para lo que está este número. */
+#define SAVE_VERSION 3
 
 typedef struct SaveData {
     uint16_t magic;
@@ -62,6 +63,17 @@ typedef struct SaveData {
        explica el criterio y dónde vive en marcha. */
     uint32_t chapas_taken[LEVEL_COUNT];
     uint64_t tiles_broken[LEVEL_COUNT];
+
+    /* Los cuatro botones reasignables, en el orden de InputAction
+       (saltar, ganchito, dash, traza). Se guardan como índice de
+       PadButton. El tipo vive en la capa de plataforma y este header es
+       de core, así que acá va el número pelado y la PAL lo valida. */
+    uint8_t  bind[4];
+    /* bit 0: todos los poderes desde el principio. bit 1: claves
+       habilitadas. Las claves ACTIVADAS no se guardan a propósito: se
+       vuelven a escribir en un segundo y nadie quiere descubrir que su
+       partida quedó invencible para siempre. */
+    uint8_t  opt_flags;
 } SaveData;
 
 /* Suma simple sobre los bytes que siguen al propio checksum. No es

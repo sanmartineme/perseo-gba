@@ -30,6 +30,37 @@
    Mapeo de botones según docs/PLAN_MIGRACION_GBA_C.md, sección 6:
    D-Pad=mover, A=saltar, B=Ganchito Mortal, R=Dash Sombrío,
    L=Lanzamiento de Traza, Select=inventario, Start=pausa. */
+/* ---------- Botones reasignables ----------
+   Las cuatro acciones de juego se pueden mover entre los cuatro botones
+   de acción. El D-Pad, START y SELECT no: mover la cruceta no tiene
+   sentido, y dejar los menús sin botón de confirmar tampoco — por eso
+   confirmar y cancelar siguen fijos en A y B pase lo que pase con el
+   mapeo de juego. */
+typedef enum PadButton {
+    PAD_A = 0, PAD_B, PAD_L, PAD_R, PAD_COUNT
+} PadButton;
+
+typedef enum InputAction {
+    ACT_JUMP = 0,   /* saltar */
+    ACT_ATTACK,     /* Ganchito Mortal */
+    ACT_DASH,       /* Dash Sombrío */
+    ACT_THROW,      /* Lanzamiento de Traza */
+    ACT_COUNT
+} InputAction;
+
+/* Nombre corto del botón, para pintarlo en el menú: "A", "B", "L", "R". */
+const char *pal_input_button_name(PadButton b);
+/* Asigna un botón a una acción. Si ya lo tenía otra, las dos se
+   intercambian: así el mapeo sigue siendo una permutación y nunca queda
+   una acción sin botón ni dos acciones en el mismo. */
+void pal_input_bind(InputAction act, PadButton btn);
+PadButton pal_input_binding(InputAction act);
+/* Restaura las cuatro asignaciones de golpe (al cargar una partida). Si lo
+   que llega no es una permutación de los cuatro botones — SRAM corrupta,
+   un guardado de otra versión — se ignora y quedan las de fábrica: mejor
+   unos controles inesperados que una acción sin botón. */
+void pal_input_set_bindings(const uint8_t *four);
+
 void pal_input_poll(void);
 bool pal_input_left(void);
 bool pal_input_right(void);

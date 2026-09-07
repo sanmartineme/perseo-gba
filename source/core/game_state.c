@@ -73,6 +73,11 @@ static void game_to_save(const Game *g, SaveData *s) {
         s->chapas_taken[i] = g->progress.chapas_taken[i];
         s->tiles_broken[i] = g->progress.tiles_broken[i];
     }
+    for (int i = 0; i < ACT_COUNT; i++) {
+        s->bind[i] = (uint8_t)pal_input_binding((InputAction)i);
+    }
+    s->opt_flags = (uint8_t)((g->opt_all_powers ? 1u : 0u) |
+                             (g->opt_cheats     ? 2u : 0u));
     (void)p;
     save_seal(s);
 }
@@ -131,6 +136,10 @@ bool game_load(Game *g) {
         g->progress.chapas_taken[i] = s.chapas_taken[i];
         g->progress.tiles_broken[i] = s.tiles_broken[i];
     }
+    pal_input_set_bindings(s.bind);
+    g->opt_all_powers = (s.opt_flags & 1u) != 0;
+    g->opt_cheats     = (s.opt_flags & 2u) != 0;
+    g->cheat_mode     = CHEAT_NONE;
     g->deaths = s.deaths;
     g->play_frames = s.play_frames;
     g->has_checkpoint = s.has_checkpoint != 0;
@@ -217,6 +226,9 @@ void game_init(Game *g) {
     g->progress = zero;
     g->has_checkpoint = false;
     g->cp_level = 0;
+    g->opt_sel = 0;
+    g->cheat_mode = CHEAT_NONE;
+    for (int i = 0; i < CHEAT_HISTORY; i++) g->cheat_hist[i] = 0;
     g->cp_tx = g->cp_ty = 0;
 
     /* El título se dibuja sobre un nivel de verdad desplazándose de
@@ -229,15 +241,135 @@ void game_init(Game *g) {
 /* ---------------------------------------------------------------------
    Actualización por estado
    --------------------------------------------------------------------- */
+/* ---------- Claves ----------
+   Un anillo con las ultimas pulsaciones y una tabla de codigos. Se
+   comprueba el final del anillo contra cada codigo: asi da igual lo que
+   se haya pulsado antes, que es como se espera que funcione una clave.
+
+   Los tokens son del D-Pad y de los botones A y B FIJOS. Si dependieran
+   del mapeo reasignable, cambiar los controles cambiaria los codigos y no
+   habria forma de escribirlos. */
+enum { CK_NONE = 0, CK_UP, CK_DOWN, CK_LEFT, CK_RIGHT, CK_A, CK_B };
+
+typedef struct CheatCode {
+    uint8_t     len;
+    uint8_t     keys[6];
+    uint8_t     mode;        /* un CheatMode */
+    const char *title;
+    const char *desc;
+} CheatCode;
+
+static const CheatCode CHEATS[] = {
+    /* Salto, adelante, atras y A. */
+    { 4, { CK_A, CK_RIGHT, CK_LEFT, CK_A }, CHEAT_INVENCIBLE,
+      "MODO INVENCIBLE", "Perseo ya no recibe dano." },
+    /* Atras, atras, atras y B. */
+    { 4, { CK_LEFT, CK_LEFT, CK_LEFT, CK_B }, CHEAT_SUPER,
+      "MODO SUPERSAYAYIN", "Invencible, con las tres habilidades y pegando el triple." },
+};
+#define CHEAT_COUNT ((int)(sizeof CHEATS / sizeof CHEATS[0]))
+
+static uint8_t cheat_token(const GameInput *in) {
+    if (in->up_pressed)      return CK_UP;
+    if (in->down_pressed)    return CK_DOWN;
+    if (in->left_pressed)    return CK_LEFT;
+    if (in->right_pressed)   return CK_RIGHT;
+    if (in->confirm_pressed) return CK_A;
+    if (in->cancel_pressed)  return CK_B;
+    return CK_NONE;
+}
+
+/* Devuelve el codigo que acaba de completarse, o NULL. */
+static const CheatCode *cheat_feed(Game *g, const GameInput *in) {
+    if (!g->opt_cheats) return 0;
+    uint8_t tok = cheat_token(in);
+    if (tok == CK_NONE) return 0;
+
+    for (int i = 0; i < CHEAT_HISTORY - 1; i++) g->cheat_hist[i] = g->cheat_hist[i + 1];
+    g->cheat_hist[CHEAT_HISTORY - 1] = tok;
+
+    for (int c = 0; c < CHEAT_COUNT; c++) {
+        const CheatCode *code = &CHEATS[c];
+        int off = CHEAT_HISTORY - code->len;
+        bool match = true;
+        for (int k = 0; k < code->len && match; k++) {
+            match = g->cheat_hist[off + k] == code->keys[k];
+        }
+        if (match) return code;
+    }
+    return 0;
+}
+
+/* Empuja los modos al mundo, como se hace con la dificultad. */
+static void apply_cheats(Game *g) {
+    Player *p = &g->world.player;
+    p->god   = g->cheat_mode == CHEAT_INVENCIBLE || g->cheat_mode == CHEAT_SUPER;
+    p->super = g->cheat_mode == CHEAT_SUPER;
+    if (g->cheat_mode == CHEAT_SUPER || g->opt_all_powers) {
+        p->ab.double_jump = p->ab.dash = p->ab.climb = true;
+        g->progress.ab = p->ab;
+    }
+}
+
+static void update_options(Game *g, const GameInput *in) {
+    if (in->cancel_pressed) { audio_play_sfx(SFX_CHECK); enter(g, GS_TITLE); return; }
+    if (in->down_pressed) {
+        g->opt_sel = (int8_t)((g->opt_sel + 1) % OPT_ROW_COUNT);
+        audio_play_sfx(SFX_CHECK);
+    }
+    if (in->up_pressed) {
+        g->opt_sel = (int8_t)((g->opt_sel + OPT_ROW_COUNT - 1) % OPT_ROW_COUNT);
+        audio_play_sfx(SFX_CHECK);
+    }
+
+    int delta = (in->right_pressed ? 1 : 0) - (in->left_pressed ? 1 : 0);
+
+    if (g->opt_sel <= OPT_THROW) {
+        /* Reasignar: izquierda/derecha recorre los cuatro botones. El
+           intercambio lo resuelve la PAL, que es quien sabe si el boton
+           elegido ya era de otra accion. */
+        if (delta) {
+            PadButton cur = pal_input_binding((InputAction)g->opt_sel);
+            int nb = ((int)cur + delta + PAD_COUNT) % PAD_COUNT;
+            pal_input_bind((InputAction)g->opt_sel, (PadButton)nb);
+            audio_play_sfx(SFX_ABILITY);
+        }
+        return;
+    }
+
+    bool toggle = delta != 0 || in->confirm_pressed;
+    switch (g->opt_sel) {
+        case OPT_POWERS:
+            if (toggle) { g->opt_all_powers = !g->opt_all_powers; audio_play_sfx(SFX_ABILITY); }
+            break;
+        case OPT_CHEATS:
+            if (toggle) {
+                g->opt_cheats = !g->opt_cheats;
+                if (!g->opt_cheats) g->cheat_mode = CHEAT_NONE;
+                audio_play_sfx(SFX_ABILITY);
+            }
+            break;
+        case OPT_BACK:
+            if (in->confirm_pressed || in->start_pressed) {
+                audio_play_sfx(SFX_CHECK);
+                enter(g, GS_TITLE);
+            }
+            break;
+        default: break;
+    }
+}
+
 static void update_title(Game *g, const GameInput *in) {
     /* Con partida guardada el menú tiene una opción más, CONTINUAR, y
        es la primera: si volviste al juego, es lo que querías hacer. */
-    int n = game_has_save() ? 4 : 3;
+    int n = game_has_save() ? 5 : 4;
     if (in->down_pressed)  g->title_sel = (int8_t)((g->title_sel + 1) % n);
     if (in->up_pressed)    g->title_sel = (int8_t)((g->title_sel + n - 1) % n);
 
-    /* Índice del menú -> qué es. Sin guardado, la fila 0 es JUGAR. */
-    int item = (n == 4) ? g->title_sel : g->title_sel + 1;
+    /* Índice de fila -> qué opción es. Sin guardado no hay CONTINUAR, así
+       que todas las filas se corren una hacia arriba y hay que sumar uno
+       para volver a la numeración de opciones (0 = CONTINUAR). */
+    int item = (n == 5) ? g->title_sel : g->title_sel + 1;
 
     if (item == 0 && (in->confirm_pressed || in->start_pressed)) {
         if (game_load(g)) { audio_play_sfx(SFX_ABILITY); return; }
@@ -258,6 +390,12 @@ static void update_title(Game *g, const GameInput *in) {
         if (d >= DIFF_COUNT) d = 0;
         g->difficulty = (Difficulty)d;
         audio_play_sfx(SFX_CHECK);
+        return;
+    }
+    if (item == 4 && (in->confirm_pressed || in->start_pressed)) {
+        audio_play_sfx(SFX_CHECK);
+        g->opt_sel = 0;
+        enter(g, GS_OPTIONS);
         return;
     }
     if (item == 1 && (in->confirm_pressed || in->start_pressed)) {
@@ -464,6 +602,26 @@ static void update_trans(Game *g) {
 
 void game_update(Game *g, const GameInput *in) {
     g->frame++;
+    /* Las claves se escuchan sólo jugando: en los menús las mismas
+       pulsaciones significan otra cosa. */
+    if (g->state == GS_PLAY) {
+        const CheatCode *code = cheat_feed(g, in);
+        apply_cheats(g);
+        if (code) {
+            g->cheat_mode = code->mode;
+            audio_play_sfx(SFX_ABILITY);
+            g->banner_title = code->title;
+            g->banner_desc = code->desc;
+            g->banner_t = BANNER_FRAMES;
+            enter(g, GS_BANNER);
+            /* Y se corta el frame aquí. Si se dejara seguir, el mismo
+               botón que cerró la clave llegaría a update_banner() con
+               confirm_pressed todavía puesto y cerraría el cartel en el
+               acto: la clave se activaba de verdad, pero el aviso duraba
+               cero frames y no había forma de saberlo. */
+            return;
+        }
+    }
     g->state_t++;
     g->story_t++;
     if (g->zone_t > 0) g->zone_t--;
@@ -473,6 +631,11 @@ void game_update(Game *g, const GameInput *in) {
             /* El fondo del título es el nivel desplazándose solo. */
             g->cam.x = fx_from_int((int32_t)((g->frame / 4) % 600));
             update_title(g, in);
+            break;
+
+        case GS_OPTIONS:
+            g->cam.x = fx_from_int((int32_t)((g->frame / 4) % 600));
+            update_options(g, in);
             break;
 
         case GS_STORY:

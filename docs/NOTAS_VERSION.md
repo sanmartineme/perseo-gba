@@ -1,5 +1,25 @@
 # Notas de versión
 
+## v1.0-rc5 — candidata a versión
+
+**OPCIONES en el menú principal**: reasignar los cuatro botones de acción,
+dar o quitar las tres habilidades desde el principio, y encender las claves.
+
+| Código (jugando, con las claves encendidas) | Modo |
+|---|---|
+| A, derecha, izquierda, A | INVENCIBLE |
+| izquierda, izquierda, izquierda, B | SUPERSAYAYIN |
+
+| | |
+|---|---|
+| Tamaño | 126.940 bytes |
+| MD5 | `46629756f8ede1c5749954eefe8df3af` |
+
+**El formato de guardado cambió** (`SAVE_VERSION` 3, para los controles y las
+opciones), así que una partida de la rc4 se descarta al arrancar.
+
+---
+
 ## v1.0-rc4 — candidata a versión
 
 **Las viñetas de la cinemática ya se ilustran.** Faltaba media cinemática: se
@@ -104,6 +124,10 @@ pruebas.
 | START | Pausa |
 | SELECT | Inventario |
 | START+SELECT | Medidor de coste de frame |
+
+Los cuatro botones de acción se pueden reasignar desde OPCIONES. El D-Pad,
+START y SELECT no, y confirmar/cancelar siguen fijos en A y B pase lo que
+pase con el mapeo: unos menús sin botón de confirmar no tendrían arreglo.
 
 Ese último no es un huevo de pascua: es la herramienta con la que se validó
 el rendimiento, y va en la ROM de release a propósito. Si alguna vez el juego
