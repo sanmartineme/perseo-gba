@@ -1,5 +1,22 @@
 # Notas de versión
 
+## v1.0-rc4 — candidata a versión
+
+**Las viñetas de la cinemática ya se ilustran.** Faltaba media cinemática: se
+había portado el texto de la introducción y el desenlace, pero no las escenas
+que los acompañan. Ahora están las doce — siete de la introducción, cinco del
+desenlace — con Aurorita (que no existía como sprite), la luna, las
+estrellas, la silueta de la ciudad y la jaula.
+
+| | |
+|---|---|
+| Tamaño | 125.056 bytes |
+| MD5 | `872e0c798fa050b050e6a1ca5216a863` |
+
+El guardado no cambia: una partida de la rc2/rc3 sigue valiendo.
+
+---
+
 ## v1.0-rc3 — candidata a versión
 
 Limpieza, sin ningún cambio de comportamiento: fuera el andamio de las

@@ -25,15 +25,12 @@
    ===================================================================== */
 #include <tonc.h>
 #include "../../ui/text.h"
+#include "ui_tiles.h"
 
-#define UI_CBB 2
 #define UI_SBB 26
 #define DIM_SBB 27   /* BG3: el velo, una capa entera del tile oscuro */
 
 /* Tiles de la UI dentro de CBB 2. */
-#define TILE_BLANK 0
-#define TILE_DARK  1
-#define TILE_EDGE  2
 #define TILE_FONT  32   /* el glifo del carácter 32 (' ') empieza acá, así
                            que el tile de un carácter es su propio código */
 

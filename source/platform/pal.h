@@ -90,6 +90,54 @@ void pal_video_set_parallax_scroll(int cam_x, int cam_y);
    acá sólo se traduce a atributos de OAM. */
 void pal_video_draw_world(const World *w, int cam_x, int cam_y);
 
+/* ---------- Viñetas de la cinemática ----------
+   Las pantallas de historia no dibujan el mundo: componen una escena a
+   mano, con los personajes puestos donde toca. El prototipo lo hace con
+   `drawImage` sobre el canvas; acá hace falta un camino propio, porque el
+   único que había — pal_video_draw_world() — sólo sabe pintar el pool de
+   entidades, y en esas pantallas el pool está vacío o es de otro nivel.
+
+   Los actores son los mismos personajes del juego pero al doble de
+   tamaño (32x32), como en el original. Las coordenadas son de PANTALLA y
+   apuntan a la esquina superior izquierda del sprite. */
+typedef enum CineActor {
+    CINE_AURORA = 0,   /* la hermanita; sólo aparece en las viñetas */
+    CINE_THUG1,
+    CINE_THUG2,
+    CINE_PERSEO,
+    CINE_BETTY,        /* reaprovecha el sprite del jefe final */
+    CINE_CAGE,         /* la jaula, con los huecos transparentes */
+    CINE_MOON,         /* 16x16, el único que no es de 32 */
+    CINE_ACTOR_COUNT
+} CineActor;
+
+/* El fondo de una viñeta. No es decoración: los protagonistas son gatos
+   negros, y sobre un cielo negro no se les ve más que el hocico. En el
+   prototipo lo que les da contraste es la silueta de la ciudad detrás
+   (en la calle) y las franjas del trónó (bajo tierra), así que acá hay
+   que dibujarlas igual. */
+typedef enum CineBackdrop {
+    CINE_BG_NONE = 0,   /* ninguno: se ve el nivel, como siempre */
+    CINE_BG_NIGHT,      /* la superficie de noche, con su horizonte */
+    CINE_BG_THRONE      /* el tróno de Betty, bajo tierra */
+} CineBackdrop;
+
+/* Cambia el fondo de la cinemática. Esconde las capas del nivel mientras
+   dura y las devuelve como estaban al volver a CINE_BG_NONE. */
+void pal_video_cine_backdrop(CineBackdrop kind);
+
+/* El paneo lento de la ciudad. Es scroll de hardware: no cuesta nada. */
+void pal_video_cine_pan(uint32_t frame);
+
+/* Empieza una escena: descarta lo que hubiera en OAM. */
+void pal_video_cine_begin(void);
+void pal_video_cine_actor(CineActor who, int x, int y, bool flip_h);
+/* Un punto suelto de un color de partícula, que es lo que hace de
+   estrella en el cielo y de chispa. */
+void pal_video_cine_dot(int x, int y, uint8_t color);
+/* Cierra la escena: esconde las ranuras de OAM que sobraron. */
+void pal_video_cine_end(void);
+
 /* Mosaico de hardware, 0 (nítido) a 15 (bloques de 16 px). Es la
    traducción de pixelate()/startTransition() del prototipo: allá se
    redibujaba el frame a baja resolución y se escalaba; acá el efecto ya

@@ -161,6 +161,7 @@ static void enter_level_or_story(Game *g) {
         g->story_scenes = 0;
         g->story_count = lv->story_count;
         g->story_idx = 0;
+        g->story_t = 0;
         g->story_next = GS_PLAY;
         enter(g, GS_STORY);
     } else {
@@ -203,6 +204,7 @@ void game_init(Game *g) {
     g->story_pages = 0;
     g->story_scenes = 0;
     g->story_count = g->story_idx = 0;
+    g->story_t = 0;
     g->story_next = GS_PLAY;
     g->story_shown_mask = 0;
     g->banner_title = g->banner_desc = 0;
@@ -265,6 +267,7 @@ static void update_title(Game *g, const GameInput *in) {
         g->story_pages = 0;
         g->story_scenes = story_intro(&g->story_count);
         g->story_idx = 0;
+        g->story_t = 0;
         g->story_next = GS_STATE_COUNT;   /* al acabar: empezar la partida */
         enter(g, GS_STORY);
     }
@@ -274,6 +277,7 @@ static void update_story(Game *g, const GameInput *in) {
     if (!(in->confirm_pressed || in->start_pressed)) return;
     audio_play_sfx(SFX_CHECK);
     g->story_idx++;
+    g->story_t = 0;
     if (g->story_idx < g->story_count) return;
 
     /* Se acabaron las páginas. GS_STATE_COUNT es el caso especial "esto
@@ -281,6 +285,7 @@ static void update_story(Game *g, const GameInput *in) {
     if (g->story_next == GS_STATE_COUNT) game_start_new(g);
     else if (g->story_next == GS_CREDITS) {
         g->story_idx = 0;
+        g->story_t = 0;
         enter(g, GS_CREDITS);
     } else enter(g, (GameState)g->story_next);
 }
@@ -351,6 +356,7 @@ static void consume_world_event(Game *g) {
             g->story_pages = 0;
             g->story_scenes = boss_dialogue((BossId)ev.param, &g->story_count);
             g->story_idx = 0;
+        g->story_t = 0;
             enter(g, GS_BOSSDIALOG);
             break;
         }
@@ -359,6 +365,7 @@ static void consume_world_event(Game *g) {
             g->story_pages = 0;
             g->story_scenes = story_ending(&g->story_count);
             g->story_idx = 0;
+        g->story_t = 0;
             g->story_next = GS_CREDITS;
             enter(g, GS_ENDING);
             break;
@@ -458,6 +465,7 @@ static void update_trans(Game *g) {
 void game_update(Game *g, const GameInput *in) {
     g->frame++;
     g->state_t++;
+    g->story_t++;
     if (g->zone_t > 0) g->zone_t--;
 
     switch (g->state) {

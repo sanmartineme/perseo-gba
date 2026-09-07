@@ -1,0 +1,18 @@
+{
+  "frame_size": [
+    32,
+    32
+  ],
+  "bank": "perseo",
+  "frames": [
+    "p_idle1"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "K",
+    "2": "L",
+    "3": "P",
+    "4": "R",
+    "5": "Y"
+  }
+}

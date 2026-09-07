@@ -1,0 +1,10 @@
+# Aurorita para las vinetas de la cinematica: su arte de 16x16 ampliado
+# al doble por el generador, asi que el frame es de 32x32.
+# Meta-tile de 4x4 = 16 tiles por frame.
+-gt
+-gB4
+-Mw4
+-Mh4
+-pn16
+-ftc
+-fh

@@ -21,9 +21,36 @@
 #include "boss/boss_config.h"
 
 /* Una viñeta: quién habla (0 = narrador) y qué dice. */
+/* Qué ilustración acompaña a una viñeta. El prototipo las identifica por
+   nombre dentro de cada entrada de INTRO_STORY/ENDING_STORY, y las dibuja
+   componiendo personajes y decorado sobre el canvas; acá el nombre se
+   convierte en este enum y la composición vive en source/ui/cine.c.
+   El orden lo fija tools/storygen/story_to_c.py: si cambia, hay que
+   cambiarlo en los dos sitios (el generador falla si aparece una escena
+   que no conoce). */
+typedef enum StoryScene {
+    SCENE_NONE = 0,
+    /* Introducción: el rapto de Aurorita. */
+    SCENE_STREET_CALM,
+    SCENE_AMBUSH,
+    SCENE_SCARED,
+    SCENE_CAGED,
+    SCENE_DEFIANT,
+    SCENE_SEWER_DRAG,
+    SCENE_VOW,
+    /* Desenlace: el rescate. */
+    SCENE_BETTY_FALL,
+    SCENE_APPROACH,
+    SCENE_OPEN,
+    SCENE_REUNION,
+    SCENE_EPILOGUE,
+    SCENE_COUNT
+} StoryScene;
+
 typedef struct StoryPage {
     const char *who;
     const char *text;
+    uint8_t     scene;   /* un StoryScene */
 } StoryPage;
 
 /* Una pantalla de créditos: un título y hasta dos líneas debajo. */

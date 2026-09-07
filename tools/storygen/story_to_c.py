@@ -38,6 +38,26 @@ def find_array(src, name):
     return m.group(1)
 
 
+# Nombre de escena del prototipo -> constante de StoryScene (core/dialogue.h).
+# Si el prototipo estrena una escena y no esta aca, el generador falla en vez
+# de emitir una vineta sin ilustracion: es mas facil enterarse ahora que
+# descubrir una pantalla vacia jugando.
+SCENES = {
+    "street_calm": "SCENE_STREET_CALM",
+    "ambush":      "SCENE_AMBUSH",
+    "scared":      "SCENE_SCARED",
+    "caged":       "SCENE_CAGED",
+    "defiant":     "SCENE_DEFIANT",
+    "sewer_drag":  "SCENE_SEWER_DRAG",
+    "vow":         "SCENE_VOW",
+    "betty_fall":  "SCENE_BETTY_FALL",
+    "approach":    "SCENE_APPROACH",
+    "open":        "SCENE_OPEN",
+    "reunion":     "SCENE_REUNION",
+    "epilogue":    "SCENE_EPILOGUE",
+}
+
+
 def parse_pages(body):
     """Lee entradas {scene:..., who:..., text:'...'} en orden."""
     pages = []
@@ -45,10 +65,17 @@ def parse_pages(body):
         entry = m.group(1)
         who = re.search(r"who\s*:\s*'((?:[^'\\]|\\.)*)'", entry)
         text = re.search(r"text\s*:\s*'((?:[^'\\]|\\.)*)'", entry)
+        scene = re.search(r"scene\s*:\s*'([^']*)'", entry)
         if not text:
             continue
+        name = scene.group(1) if scene else None
+        if name is not None and name not in SCENES:
+            raise RuntimeError(
+                f"escena '{name}' sin equivalente en SCENES; anadila aca y a "
+                "StoryScene en source/core/dialogue.h")
         pages.append((unescape(who.group(1)) if who else None,
-                      unescape(text.group(1))))
+                      unescape(text.group(1)),
+                      SCENES[name] if name else "SCENE_NONE"))
     return pages
 
 
@@ -80,9 +107,9 @@ def parse_boss_dialog(src):
 
 def emit_pages(out, ident, pages):
     out.append(f"static const StoryPage {ident}[{len(pages)}] = {{")
-    for who, text in pages:
+    for who, text, scene in pages:
         w = c_string(who) if who else "0"
-        out.append(f"    {{ {w}, {c_string(text)} }},")
+        out.append(f"    {{ {w}, {c_string(text)}, {scene} }},")
     out.append("};")
     out.append("")
 

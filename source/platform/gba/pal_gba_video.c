@@ -46,6 +46,12 @@
 #include "props_16x32.h"
 #include "props_8x16.h"
 #include "props_8x8.h"
+#include "aurorita.h"
+#include "thugs_32x32.h"
+#include "perseo_32x32.h"
+#include "cine_16x16.h"
+#include "cine_32x32.h"
+#include "ui_tiles.h"
 
 #define TILES_OF(len)   ((len) / 32) /* un tile 4bpp son 32 bytes */
 #define TB_PERSEO       0
@@ -59,12 +65,23 @@
 #define TB_PROP16X32    (TB_PROP16    + TILES_OF(props_16x16TilesLen))
 #define TB_PROP8X16     (TB_PROP16X32 + TILES_OF(props_16x32TilesLen))
 #define TB_PROP8        (TB_PROP8X16  + TILES_OF(props_8x16TilesLen))
+/* Vinetas de la cinematica: los mismos personajes al doble de tamano, ver
+   la nota de "scale" en tools/spritegen/ascii_to_png.py. */
+#define TB_CINE_AURORA  (TB_PROP8       + TILES_OF(props_8x8TilesLen))
+#define TB_CINE_THUGS   (TB_CINE_AURORA + TILES_OF(auroritaTilesLen))
+#define TB_CINE_PERSEO  (TB_CINE_THUGS  + TILES_OF(thugs_32x32TilesLen))
+#define TB_CINE_MOON    (TB_CINE_PERSEO + TILES_OF(perseo_32x32TilesLen))
+#define TB_CINE_CAGE    (TB_CINE_MOON   + TILES_OF(cine_16x16TilesLen))
 
 #define PALBANK_PERSEO  0
 #define PALBANK_ENEMY   1
 #define PALBANK_FX      2
 #define PALBANK_BOSS    3
 #define PALBANK_PROPS   4
+/* Aurorita no sale en ningun nivel, solo en las vinetas, y su pelaje
+   atigrado no entra en ninguno de los bancos ya cargados. */
+#define PALBANK_AURORA  5
+#define PALBANK_CINE    6
 
 #define BG_CBB_INDEX 0
 #define BG2_SBB_INDEX 8
@@ -155,12 +172,19 @@ void pal_video_init(void) {
     memcpy32(&tile_mem_obj[0][TB_PROP16X32], props_16x32Tiles,   props_16x32TilesLen / 4);
     memcpy32(&tile_mem_obj[0][TB_PROP8X16],  props_8x16Tiles,    props_8x16TilesLen / 4);
     memcpy32(&tile_mem_obj[0][TB_PROP8],     props_8x8Tiles,     props_8x8TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_CINE_AURORA], auroritaTiles,     auroritaTilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_CINE_THUGS],  thugs_32x32Tiles,  thugs_32x32TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_CINE_PERSEO], perseo_32x32Tiles, perseo_32x32TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_CINE_MOON],   cine_16x16Tiles,   cine_16x16TilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_CINE_CAGE],   cine_32x32Tiles,   cine_32x32TilesLen / 4);
 
     memcpy32(&pal_obj_mem[PALBANK_PERSEO * 16], perseoPal,       perseoPalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_ENEMY * 16],  enemies_16x8Pal, enemies_16x8PalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_FX * 16],     fx_8x8Pal,       fx_8x8PalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_BOSS * 16],   bossesPal,       bossesPalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_PROPS * 16],  props_16x16Pal,  props_16x16PalLen / 4);
+    memcpy32(&pal_obj_mem[PALBANK_AURORA * 16], auroritaPal,     auroritaPalLen / 4);
+    memcpy32(&pal_obj_mem[PALBANK_CINE * 16],   cine_16x16Pal,   cine_16x16PalLen / 4);
 
     SBB_CLEAR(BG2_SBB_INDEX);
     SBB_CLEAR(BG1_SBB_INDEX);
@@ -351,6 +375,158 @@ static const SpriteDef *sprite_for(const Entity *e, int *first_frame) {
 
         default: return 0;
     }
+}
+
+/* ---------- Viñetas de la cinemática ----------
+   Comparten obj_put() con el dibujo del mundo, así que el recorte fuera de
+   pantalla y el tope de 128 objetos valen igual acá. */
+typedef struct CineActorDef {
+    uint16_t tile;      /* primer tile del sprite en la VRAM de objetos */
+    uint16_t shape, size;
+    uint8_t  palbank;
+} CineActorDef;
+
+static const CineActorDef CINE_ACTORS[CINE_ACTOR_COUNT] = {
+    /* AURORA */ { TB_CINE_AURORA,      ATTR0_SQUARE, ATTR1_SIZE_32x32, PALBANK_AURORA },
+    /* THUG1  */ { TB_CINE_THUGS,       ATTR0_SQUARE, ATTR1_SIZE_32x32, PALBANK_ENEMY  },
+    /* THUG2  */ { TB_CINE_THUGS + 16,  ATTR0_SQUARE, ATTR1_SIZE_32x32, PALBANK_ENEMY  },
+    /* PERSEO */ { TB_CINE_PERSEO,      ATTR0_SQUARE, ATTR1_SIZE_32x32, PALBANK_PERSEO },
+    /* BETTY  */ { TB_BOSSES + 10 * 16, ATTR0_SQUARE, ATTR1_SIZE_32x32, PALBANK_BOSS   },
+    /* CAGE   */ { TB_CINE_CAGE,        ATTR0_SQUARE, ATTR1_SIZE_32x32, PALBANK_CINE   },
+    /* MOON   */ { TB_CINE_MOON,        ATTR0_SQUARE, ATTR1_SIZE_16x16, PALBANK_CINE   },
+};
+
+/* Los colores del prototipo, tal cual: 'K' el cielo, 's' la silueta de la
+   ciudad, 'Y' una ventana encendida, y para el trono la mezcla de 'h'
+   sobre 'K' que alla se consigue con medio alpha. */
+#define RGB_CINE_SKY     RGB15(1, 2, 3)
+#define RGB_CINE_CITY    RGB15(3, 4, 6)
+#define RGB_CINE_WINDOW  RGB15(20, 14, 4)
+#define RGB_CINE_THRONE  RGB15(7, 3, 6)
+
+/* Bancos de paleta de fondo que usa la cinematica. El 0 es del tileset del
+   nivel y del 8 al 15 son de la interfaz; en medio no habia nadie. */
+#define PB_CINE_FILL   2
+#define PB_CINE_LIGHT  3
+
+/* La fila del horizonte, en tiles: CINE_GROUND_Y (88) / 8. Los personajes
+   se apoyan ahi y la silueta crece hacia arriba desde ahi. */
+#define CINE_GROUND_ROW 11
+
+static uint16_t     s_backdrop_saved;
+static CineBackdrop s_cine_bg;
+
+/* La silueta de la ciudad, en el screenblock de BG1. Edificios de dos
+   tiles de ancho separados por uno, con alturas que se repiten cada pocas
+   columnas — la misma idea que el `h = 20 + ((i+1000)*31)%26` del
+   prototipo, resuelta con enteros chicos. Como el screenblock es de 32
+   columnas y el patron cierra en 32, el scroll da la vuelta sin costura. */
+static void fill_skyline(void) {
+    for (int c = 0; c < 32; c++) {
+        bool building = (c % 3) != 2;
+        int h = building ? 3 + ((c * 7) % 5) : 0;
+        for (int r = 0; r < 32; r++) {
+            uint16_t se = SE_ID(TILE_BLANK);
+            if (building && r < CINE_GROUND_ROW && r >= CINE_GROUND_ROW - h) {
+                /* Una ventana encendida de vez en cuando, para que la
+                   ciudad no sea una mancha lisa. */
+                bool lit = ((c * 5 + r * 3) % 17) == 0;
+                se = SE_ID(TILE_DARK) | SE_PALBANK(lit ? PB_CINE_LIGHT : PB_CINE_FILL);
+            }
+            se_mem[BG1_SBB_INDEX][r * 32 + c] = se;
+        }
+    }
+}
+
+/* El trono: franjas horizontales, como los seis rectangulos a medio alpha
+   del prototipo.
+
+   Se cortan en el horizonte y no siguen hasta abajo, por un motivo que
+   costo ver: los tiles de la fuente tienen el fondo transparente, asi que
+   por detras de cada letra se cuela lo que haya en BG1. Con las franjas
+   llegando hasta el pie de la pantalla, el texto salia con parches color
+   vino detras de las palabras. La silueta de la ciudad no daba problema
+   porque ya se acababa en el horizonte. */
+static void fill_throne(void) {
+    for (int r = 0; r < 32; r++) {
+        uint16_t se = (r < CINE_GROUND_ROW && (r / 2) % 2 == 0)
+                    ? (uint16_t)(SE_ID(TILE_DARK) | SE_PALBANK(PB_CINE_FILL))
+                    : (uint16_t)SE_ID(TILE_BLANK);
+        for (int c = 0; c < 32; c++) se_mem[BG1_SBB_INDEX][r * 32 + c] = se;
+    }
+}
+
+void pal_video_cine_backdrop(CineBackdrop kind) {
+    if (kind == s_cine_bg) return;
+
+    if (s_cine_bg == CINE_BG_NONE) {
+        /* Se entra en una vineta: guardar lo que habia. */
+        s_backdrop_saved = pal_bg_mem[0];
+        REG_DISPCNT &= ~DCNT_BG2;            /* fuera el nivel */
+        /* BG1 pasa a los tiles macizos de la interfaz: son los unicos que
+           hay de un color plano, y con eso se dibujan tanto los edificios
+           como las franjas sin arte nuevo. */
+        REG_BG1CNT = BG_CBB(UI_CBB) | BG_SBB(BG1_SBB_INDEX) |
+                     BG_4BPP | BG_REG_32x32 | BG_MOSAIC | BG_PRIO(2);
+        pal_bg_mem[PB_CINE_FILL * 16 + 1]  = RGB_CINE_CITY;
+        pal_bg_mem[PB_CINE_LIGHT * 16 + 1] = RGB_CINE_WINDOW;
+    }
+
+    s_cine_bg = kind;
+    switch (kind) {
+        case CINE_BG_NIGHT:
+            pal_bg_mem[0] = RGB_CINE_SKY;
+            pal_bg_mem[PB_CINE_FILL * 16 + 1] = RGB_CINE_CITY;
+            fill_skyline();
+            break;
+        case CINE_BG_THRONE:
+            pal_bg_mem[0] = RGB_CINE_SKY;
+            pal_bg_mem[PB_CINE_FILL * 16 + 1] = RGB_CINE_THRONE;
+            fill_throne();
+            break;
+        case CINE_BG_NONE:
+        default:
+            /* De vuelta al juego: el nivel y su paralaje como estaban. */
+            pal_bg_mem[0] = s_backdrop_saved;
+            REG_BG1CNT = BG_CBB(BG_CBB_INDEX) | BG_SBB(BG1_SBB_INDEX) |
+                         BG_4BPP | BG_REG_32x32 | BG_MOSAIC | BG_PRIO(2);
+            for (int i = 0; i < MAP_TILES * MAP_TILES; i++) {
+                se_mem[BG1_SBB_INDEX][i] = SE_ID(TILEG_PARALLAX);
+            }
+            REG_BG1HOFS = 0;
+            REG_DISPCNT |= DCNT_BG2;
+            break;
+    }
+}
+
+/* El paneo lento de la ciudad: el `frame*0.18` del prototipo. Es scroll de
+   hardware, asi que no cuesta nada. */
+void pal_video_cine_pan(uint32_t frame) {
+    if (s_cine_bg == CINE_BG_NONE) return;
+    /* El paralaje del nivel mueve BG1 con la camara, y en una vineta no hay
+       camara que valga: si no se anula, la silueta de la ciudad aparece
+       colgando del borde de arriba. */
+    REG_BG1VOFS = 0;
+    REG_BG1HOFS = (s_cine_bg == CINE_BG_NIGHT) ? (uint16_t)((frame * 3) >> 4) : 0;
+}
+
+void pal_video_cine_begin(void) {
+    s_obj_next = 0;
+}
+
+void pal_video_cine_actor(CineActor who, int x, int y, bool flip_h) {
+    if (who >= CINE_ACTOR_COUNT) return;
+    const CineActorDef *d = &CINE_ACTORS[who];
+    obj_put(x, y, d->tile, d->shape, d->size, d->palbank, flip_h);
+}
+
+void pal_video_cine_dot(int x, int y, uint8_t color) {
+    obj_put(x, y, (uint16_t)(TB_PARTICLES + color),
+            ATTR0_SQUARE, ATTR1_SIZE_8x8, PALBANK_FX, false);
+}
+
+void pal_video_cine_end(void) {
+    for (int i = s_obj_next; i < 128; i++) obj_hide(&oam_mem[i]);
 }
 
 void pal_video_draw_world(const World *w, int cam_x, int cam_y) {

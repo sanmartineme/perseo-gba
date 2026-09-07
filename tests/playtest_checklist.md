@@ -51,6 +51,8 @@ no es lo mismo que haberlo escuchado.
 | | Punto | Cómo |
 |---|---|---|
 | `[x]` | Cinemática de introducción: 8 viñetas, avanzan con A | auto |
+| `[x]` | Cada viñeta lleva su **ilustración**, no sólo texto | auto |
+| `[x]` | El desenlace: sus 7 viñetas ilustradas | auto |
 | `[x]` | La historia de cada nivel sale la primera vez que se entra | auto |
 | `[x]` | El texto ajusta línea y no se sale del panel | auto |
 | `[ ]` | La historia **no** se repite al morir y volver al mismo nivel | mano |

@@ -105,13 +105,16 @@ export TEMP := $(CURDIR)/$(BUILD)/tmp
 # .grit se buscan con vpath, asi que no hace falta repetir rutas.
 GEN_NAMES := perseo enemies_16x8 enemies_8x8 enemies_16x16 fx_8x8 fx_particles bosses \
              props_16x16 props_16x32 props_8x16 props_8x8 \
+             aurorita thugs_32x32 perseo_32x32 cine_16x16 cine_32x32 \
              tileset_tuneles
 GEN_C := $(addprefix $(GENDIR)/,$(addsuffix .c,$(GEN_NAMES)))
 GEN_H := $(GEN_C:.c=.h)
 
 ASSET_DIRS := assets/src/sprites/perseo assets/src/sprites/enemigos \
               assets/src/sprites/fx assets/src/sprites/jefes \
-              assets/src/sprites/props assets/src/tiles
+              assets/src/sprites/props assets/src/sprites/aurorita \
+              assets/src/sprites/cine \
+              assets/src/tiles
 vpath %.png $(ASSET_DIRS)
 vpath %.grit $(ASSET_DIRS)
 

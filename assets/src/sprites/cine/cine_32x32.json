@@ -1,0 +1,15 @@
+{
+  "frame_size": [
+    32,
+    32
+  ],
+  "bank": "cine",
+  "frames": [
+    "cine_cage"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "D",
+    "2": "L"
+  }
+}

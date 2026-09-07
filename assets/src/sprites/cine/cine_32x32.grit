@@ -1,0 +1,8 @@
+# Decorado de las vinetas, 32x32: la jaula. Meta-tile de 4x4.
+-gt
+-gB4
+-Mw4
+-Mh4
+-pn16
+-ftc
+-fh

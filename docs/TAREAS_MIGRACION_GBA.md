@@ -462,6 +462,68 @@ al recargar, que es lo normal en el género y lo que hacía el prototipo.
 
 ---
 
+## Las viñetas ilustradas de la cinemática
+
+Reportado jugando: en el prototipo la introducción dibuja una escena en cada
+viñeta — Aurorita cruzando la calle de noche, la luna, los matones — y en el
+port salía sólo el texto. Se había portado la mitad de la cinemática sin que
+nadie lo notara, porque el texto por sí solo no parece incompleto.
+
+**No era un olvido de dibujo, eran tres huecos.** El `StoryPage` del port
+guardaba `who` y `text` pero no el `scene` que el prototipo lleva en cada
+entrada. Aurorita no existía como sprite — había hasta un directorio
+`assets/src/sprites/aurorita/` creado y vacío. Y la capa de sprites estaba
+**apagada** en `GS_STORY` y `GS_ENDING`, así que aunque hubiera arte no se
+vería: el único camino para dibujar era `pal_video_draw_world()`, que sólo
+sabe pintar el pool de entidades.
+
+Ahora están las **doce ilustraciones** (siete de la introducción y cinco del
+desenlace), con su fondo, sus personajes y sus animaciones: Aurorita cruza la
+calle, la jaula avanza hacia la alcantarilla, la chispa de rabia parpadea
+sobre los barrotes.
+
+**Lo que el arte enseñó por el camino.** Los protagonistas son gatos negros.
+Puesto Perseo sobre un cielo nocturno negro, en pantalla no se le ve más que
+el hocico y los ojos — y así salió en la primera prueba. Mirando el
+prototipo se entiende que la silueta de la ciudad del fondo **no es
+decoración**: es lo que le da contraste. Lo mismo con las franjas color vino
+del tróno en el desenlace. Sin ellas, media cinemática es una pantalla
+negra con texto.
+
+**Cómo está hecho, y por qué así:**
+
+- **Los personajes van al doble de tamaño, escalados al generar el arte.**
+  El prototipo los dibuja con un `drawImage` escalado sobre un canvas mucho
+  más ancho que la pantalla de GBA; a 1x aquí se verían diminutos. La
+  alternativa era usar sprites afínes, con su matriz y su bandera de doble
+  tamaño, para el mismo resultado y más formas de equivocarse. Cuesta 2 KB
+  de una VRAM de objetos que iba al 30 %.
+- **El fondo no lleva arte nuevo.** La silueta de la ciudad y las franjas del
+  tróno se dibujan con los tiles macizos que ya usa la capa de interfaz: un
+  tile de un color plano más un banco de paleta da un rectángulo del color
+  que haga falta. Las constantes salieron a
+  `platform/gba/ui_tiles.h` para que los dos módulos no se copien números.
+  Y el paneo de la ciudad es scroll de hardware: no cuesta nada.
+- **El orden de OAM hace de profundidad.** El objeto de índice más bajo se
+  dibuja encima, así que la jaula se pide ANTES que Aurorita y ella queda
+  detrás de los barrotes. Y como la GBA no puede bajarle el alpha a un
+  objeto suelto — el truco con el que el prototipo destaca a quien habla —
+  aquí el que habla se dibuja delante y el otro un poco atrás y más abajo.
+
+**Dos fallos que sólo aparecieron mirando la pantalla:** el paralaje del
+nivel seguía moviendo BG1 durante la viñeta, y la silueta de la ciudad salía
+colgando del borde de arriba. Y las franjas del tróno, que al principio
+llegaban hasta el pie de la pantalla, se colaban **por detrás de las letras**:
+los tiles de la fuente tienen el fondo transparente. Las dos veces el
+síntoma era evidente en la captura y no hay forma de deducirlo leyendo.
+
+**Verificado en emulador:** las ocho viñetas de la introducción, las siete
+del desenlace, la vuelta al juego sin restos del fondo de la cinemática, y
+las historias de nivel — que no llevan ilustración, igual que en el
+prototipo — con su formato de antes. Sin frames caídos.
+
+---
+
 ## Limpieza: fuera el andamio
 
 Las dos salas de prueba de las Fases 1 y 2 — `level_get_test_room()` y

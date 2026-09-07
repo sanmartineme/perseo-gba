@@ -1,6 +1,6 @@
 # Presupuesto de memoria y de frame
 
-Medido sobre `build/perseo.gba` (119.676 bytes).
+Medido sobre `build/perseo.gba` (125.056 bytes).
 Los números de memoria salen del ELF enlazado (`arm-none-eabi-readelf -S`,
 `nm -S`) y del reparto de VRAM que fija el código; los de tiempo, del
 medidor de frame que lleva la propia ROM
@@ -14,11 +14,11 @@ Cómo repetir las mediciones: al final, en "Cómo se reproduce esto".
 
 | Recurso | Capacidad | Usado | Libre |
 |---|---:|---:|---:|
-| ROM (cartucho) | 32 MB | 119.676 B (0,4 %) | prácticamente todo |
+| ROM (cartucho) | 32 MB | 125.056 B (0,4 %) | prácticamente todo |
 | EWRAM | 262.144 B | **0 B** | 100 % |
-| IWRAM | 32.768 B | 15.944 B (49 %) | 16.824 B menos la pila |
+| IWRAM | 32.768 B | 15.956 B (49 %) | 16.812 B menos la pila |
 | VRAM de fondos | 65.536 B | 12.640 B (19 %) | 52.896 B |
-| VRAM de sprites | 32.768 B | 9.728 B (30 %) | 23.040 B |
+| VRAM de sprites | 32.768 B | 12.416 B (38 %) | 20.352 B |
 | Peor frame medido | 100 % | **87,4 %** (nivel 4) | 12,6 % |
 
 La memoria no está cerca de su techo por ningún lado. El tiempo de frame sí
@@ -32,11 +32,11 @@ optimizó (y por qué), y qué se dejó sin optimizar con el número delante.
 
 | Sección | Bytes | Qué es |
 |---|---:|---|
-| `.text` | 29.520 | código |
-| `.rodata` | 89.252 | datos constantes |
+| `.text` | 31.808 | código |
+| `.rodata` | 92.344 | datos constantes |
 | `.iwram` + `.data` (copias) | 328 | se copian a IWRAM al arrancar |
 | cabecera + relleno de `gbafix` | 580 | |
-| **total** | **119.676** | |
+| **total** | **125.056** | |
 
 Los datos pesan tres veces más que el código, y dentro de los datos mandan
 los siete tilemaps:
@@ -61,9 +61,9 @@ nada. Ver sección 6.
 
 ---
 
-## 3. IWRAM — 15.944 B de 32.768
+## 3. IWRAM — 15.956 B de 32.768
 
-`.bss` + `.data` terminan en `0x03003E48`. Por encima queda la pila (que crece hacia
+`.bss` + `.data` terminan en `0x03003E54`. Por encima queda la pila (que crece hacia
 abajo desde `0x03007F00`) y la tabla de interrupciones.
 
 | Símbolo | Bytes | Qué es |
@@ -139,7 +139,7 @@ recargar un tileset. Los cuatro screenblocks son de 32×32 y el scroll de
 mapa grande reescribe la columna o fila que entra, así que su tamaño no
 depende de lo grande que sea el nivel.
 
-### Sprites — 9.728 B de 32.768 (304 tiles de 1.024)
+### Sprites — 12.416 B de 32.768 (388 tiles de 1.024)
 
 | Banco | Bytes |
 |---|---:|
@@ -154,10 +154,23 @@ depende de lo grande que sea el nivel.
 | `fx_particles` | 160 |
 | `props_16x16` | 128 |
 | `props_8x8` | 96 |
+| `thugs_32x32` (viñetas) | 1.024 |
+| `aurorita` (viñetas) | 512 |
+| `perseo_32x32` (viñetas) | 512 |
+| `cine_32x32`, la jaula | 512 |
+| `cine_16x16`, la luna | 128 |
 
 Todos los bancos se cargan al arrancar y se quedan: no hay carga por nivel
-que pueda fallar a mitad de partida. Los seis jefes son las tres cuartas
-partes del gasto y aun así sobran 23 KB.
+que pueda fallar a mitad de partida. Los seis jefes son más de la mitad del
+gasto y aun así sobran 20 KB.
+
+Los cinco últimos son de las viñetas de la cinemática. Cuatro de ellos son
+personajes que ya estaban, **repetidos al doble de tamaño**: en las viñetas
+el prototipo los dibuja escalados sobre un canvas mucho más ancho que la
+pantalla de GBA, y a 1x se verían diminutos. Escalarlos al generar el arte
+cuesta 2 KB de una VRAM que sobra; hacerlo en marcha habría pedido sprites
+afínes, con su matriz y su bandera de doble tamaño, para el mismo
+resultado.
 
 ### Paletas
 

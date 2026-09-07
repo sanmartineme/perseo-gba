@@ -90,6 +90,11 @@ typedef struct Game {
     const char *const *story_pages;  /* texto plano: historia de nivel */
     const StoryPage   *story_scenes; /* con interlocutor: intro y final */
     uint8_t story_count, story_idx;
+    /* Frames que lleva EN PANTALLA la viñeta actual. Va aparte de state_t
+       porque las viñetas pasan sin cambiar de estado, y las escenas se
+       animan desde que aparece cada una: Aurorita cruza la calle, la jaula
+       avanza hacia la alcantarilla. Es el `introT` del prototipo. */
+    uint16_t story_t;
     /* Qué hacer cuando se acaban las páginas. */
     uint8_t story_next;              /* un GameState */
     /* Un bit por nivel: su historia se cuenta la primera vez y no

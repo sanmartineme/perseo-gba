@@ -1,0 +1,15 @@
+{
+  "frame_size": [
+    16,
+    16
+  ],
+  "bank": "cine",
+  "frames": [
+    "cine_moon"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "D",
+    "2": "L"
+  }
+}

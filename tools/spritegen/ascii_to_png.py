@@ -66,6 +66,25 @@ SPRITE_SHEETS = [
         "boss_guardia", "boss_guardia_2",
         "boss_betty", "boss_betty_2",
     ]},
+    # --- Vinetas de la cinematica (intro y final) ---------------------
+    # Los mismos personajes que en el juego, pero al doble de tamano: en el
+    # prototipo las vinetas los dibujan escalados sobre un canvas mucho mas
+    # ancho que la pantalla de GBA, y a 1x se verian diminutos. Cada uno se
+    # queda en el banco de paleta que ya tenia, para no recalcular colores.
+    {"name": "aurorita/aurorita", "bank": "aurorita", "size": (32, 32), "scale": 2,
+     "frames": ["aurora_idle"]},
+    {"name": "enemigos/thugs_32x32", "bank": "enemies", "size": (32, 32), "scale": 2,
+     "frames": ["thug1", "thug2"]},
+    {"name": "perseo/perseo_32x32", "bank": "perseo", "size": (32, 32), "scale": 2,
+     "frames": ["p_idle1"]},
+
+    # Decorado propio de las vinetas. Banco aparte porque no comparte
+    # ningun color con lo demas: la luna es azul palido y la jaula, hierro.
+    {"name": "cine/cine_16x16", "bank": "cine", "size": (16, 16),
+     "frames": ["cine_moon"]},
+    {"name": "cine/cine_32x32", "bank": "cine", "size": (32, 32),
+     "frames": ["cine_cage"]},
+
     {"name": "fx/fx_8x8", "bank": "fx", "size": (8, 8), "frames": [
         "traza", "traza2", "junkproj", "shock", "heart", "chapa", "slash", "slash2",
     ]},
@@ -99,6 +118,65 @@ SPRITE_SHEETS = [
 # falta un sprite de verdad, asi que se reproduce esa misma forma —
 # tablero, marca amarilla y poste — con los mismos colores.
 EXTRA_ART = {
+    # La luna de la cinematica de introduccion. El prototipo la dibuja con
+    # dos circunferencias: una llena y otra desplazada que le muerde un
+    # trozo con el color del cielo. Aca la mordida es transparente, que es
+    # lo mismo cuando el cielo es el color de fondo.
+    "cine_moon": [
+        "................",
+        ".....LL.........",
+        "...LLLL.........",
+        "..LLLL..........",
+        "..LLL...........",
+        ".LLLL...........",
+        ".LLLL...........",
+        ".LLLL...........",
+        ".LLLLL..........",
+        ".LLLLL..........",
+        ".LLLLLL.........",
+        "..LLLLLL........",
+        "..LLLLLLLL......",
+        "...LLLLLLLLLL...",
+        ".....LLLLLL.....",
+        "................",
+    ],
+    # La jaula de Aurorita. En el prototipo son un rectangulo y unas barras
+    # dibujados sueltos sobre el canvas; aca es un sprite, con los huecos
+    # transparentes para que se la vea a ella detras.
+    "cine_cage": [
+        "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+        "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DD..DD.....DD.....DD.....DD...DD",
+        "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+        "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+    ],
     "sign": [
         "........",
         "........",
@@ -167,6 +245,20 @@ def parse_block_file(path, size):
     return blocks
 
 
+def scale_rows(rows, n):
+    """Amplia el arte n veces repitiendo pixeles (vecino mas cercano).
+
+    Las vinetas de la cinematica dibujan a los personajes mas grandes que en
+    el juego — en el prototipo es un drawImage() escalado sobre un canvas de
+    ~466 px de ancho. Aca no hay escalado por software y los sprites afines
+    de la GBA complicarian el posicionado, asi que la ampliacion se hace al
+    generar el arte: sale el mismo pixelado duro del original y en marcha es
+    un sprite normal y corriente."""
+    if n <= 1:
+        return rows
+    return ["".join(c * n for c in row) for row in rows for _ in range(n)]
+
+
 def sheet_frames(sheet, sprites):
     """Devuelve [(nombre, filas)] de una hoja, venga del prototipo o de un .txt."""
     if "source" in sheet:
@@ -174,11 +266,12 @@ def sheet_frames(sheet, sprites):
         base = sheet["name"].split("/")[-1]
         return [(f"{base}_{i}", b) for i, b in enumerate(blocks)]
     out = []
+    scale = sheet.get("scale", 1)
     for fn in sheet["frames"]:
         rows = sprites.get(fn) or EXTRA_ART.get(fn)
         if rows is None:
             raise RuntimeError(f"El prototipo no define SPR.{fn} y no hay arte propio")
-        out.append((fn, rows))
+        out.append((fn, scale_rows(rows, scale)))
     return out
 
 

@@ -8,6 +8,7 @@
    Ver docs/TAREAS_MIGRACION_GBA.md, Fase 7.
    ===================================================================== */
 #include "screens.h"
+#include "cine.h"
 #include "text.h"
 #include "hud.h"
 #include "menu_title.h"
@@ -21,10 +22,12 @@ static bool blink(const Game *g) { return ((g->frame >> 4) & 1) != 0; }
 /* ---------------------------------------------------------------------
    Pantallas
    --------------------------------------------------------------------- */
-static void draw_story(const Game *g) {
-    ui_text_dim(15);
-    ui_text_panel(0, 0, UI_COLS, UI_ROWS, UI_FILL_NONE, true);
+/* La fila de la rejilla de texto donde empieza el cajon de la vineta. Es
+   CINE_GROUND_Y en filas: el texto arranca justo debajo del suelo que
+   pisan los personajes. */
+#define STORY_TEXT_ROW (CINE_GROUND_Y / 8)
 
+static void draw_story(const Game *g) {
     const char *text = 0;
     const char *who = 0;
     if (g->story_scenes && g->story_idx < g->story_count) {
@@ -33,28 +36,47 @@ static void draw_story(const Game *g) {
     } else if (g->story_pages && g->story_idx < g->story_count) {
         text = g->story_pages[g->story_idx];
     }
+
+    bool cine = ui_cine_has_scene(g);
+    int top = cine ? STORY_TEXT_ROW : 0;
+
+    /* Con ilustracion, el velo taparia la escena: el cajon del texto se
+       apoya sobre ella, como la banda semitransparente del prototipo.
+       Sin ilustracion (las historias de nivel) se mantiene la pantalla
+       entera de antes. */
+    ui_text_dim(cine ? 0 : 15);
+    /* Con ilustracion, el cajon del texto va sin marco: es una banda
+       oscura apoyada sobre la escena, como el rectangulo semitransparente
+       del prototipo. El marco turquesa de las otras pantallas competiria
+       con el dibujo. */
+    ui_text_panel(0, top, UI_COLS, UI_ROWS - top,
+                  cine ? UI_FILL_DARK : UI_FILL_NONE, !cine);
     if (!text) return;
 
-    int row = 4;
+    int row = top + 2;
     if (who) {
-        ui_text_put(3, 2, UI_YELLOW, who);
-        row = 5;
-    } else if (g->story_pages && g->world.lv->name) {
-        /* Sólo la historia de nivel se encabeza con el nombre de la zona;
-           la intro y el final no ocurren en ningún nivel. */
+        ui_text_put(3, top + 1, UI_YELLOW, who);
+    } else if (!cine && g->story_pages && g->world.lv->name) {
+        /* Solo la historia de nivel se encabeza con el nombre de la zona;
+           la intro y el final no ocurren en ningun nivel. */
         ui_text_center(2, UI_CYAN, g->world.lv->name);
+        row = 4;
+    } else if (!cine) {
+        row = 4;
+    } else {
+        row = top + 1;
     }
-    ui_text_wrapped(text, 3, row, UI_COLS - 6, UI_WHITE);
+    ui_text_wrapped(text, 2, row, UI_COLS - 4, UI_WHITE);
 
-    /* Contador de páginas, como "3 / 7" en el prototipo. */
+    /* Contador de paginas, como "3 / 7" en el prototipo. */
     char counter[8];
     char *d = counter;
     for (const char *s = ui_itoa(g->story_idx + 1); *s; s++) *d++ = *s;
     *d++ = '/';
     for (const char *s = ui_itoa(g->story_count); *s; s++) *d++ = *s;
     *d = 0;
-    ui_text_center(17, UI_GREY, counter);
-    if (blink(g)) ui_text_center(18, UI_YELLOW, "A: CONTINUAR");
+    ui_text_center(UI_ROWS - 2, UI_GREY, counter);
+    if (blink(g)) ui_text_center(UI_ROWS - 1, UI_YELLOW, "A: CONTINUAR");
 }
 
 /* Diálogo de jefe: globo abajo con el nombre de quien habla arriba, que

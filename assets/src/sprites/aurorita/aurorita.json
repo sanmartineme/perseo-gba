@@ -1,0 +1,18 @@
+{
+  "frame_size": [
+    32,
+    32
+  ],
+  "bank": "aurorita",
+  "frames": [
+    "aurora_idle"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "O",
+    "2": "P",
+    "3": "R",
+    "4": "Y",
+    "5": "o"
+  }
+}

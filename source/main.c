@@ -27,6 +27,7 @@
 #include "platform/pal.h"
 #include "ui/text.h"
 #include "ui/screens.h"
+#include "ui/cine.h"
 #include "ui/profile.h"
 
 /* Estados en los que el mundo no se ve y los sprites sólo estorbarían
@@ -34,9 +35,14 @@
 static bool state_hides_sprites(GameState st) {
     /* El título usa el nivel como fondo en movimiento, pero no su
        contenido: sin esto se verían los corazones del HUD y las ratas
-       del nivel 1 paseando por debajo del logotipo. */
-    return st == GS_TITLE || st == GS_STORY || st == GS_INVENTORY ||
-           st == GS_ENDING || st == GS_CREDITS;
+       del nivel 1 paseando por debajo del logotipo.
+       GS_STORY y GS_ENDING NO están: ahí los sprites son la viñeta. */
+    return st == GS_TITLE || st == GS_INVENTORY || st == GS_CREDITS;
+}
+
+/* Pantallas cuyos sprites los pone la cinemática y no el mundo. */
+static bool state_is_cine(GameState st) {
+    return st == GS_STORY || st == GS_ENDING;
 }
 
 /* Mosaico de la transición: sube mientras cierra y baja mientras abre,
@@ -185,7 +191,13 @@ int main(void) {
         pal_video_set_parallax_scroll(cam_x, cam_y);
         pal_profile_mark(PAL_PROF_TILES);
 
-        pal_video_draw_world(w, cam_x, cam_y);
+        /* En las viñetas el pool de entidades no pinta nada — es de otro
+           nivel, o está vacío — y quien manda es la escena. */
+        pal_video_cine_backdrop(state_is_cine(g_game.state) ? ui_cine_backdrop(&g_game)
+                                                            : CINE_BG_NONE);
+        pal_video_cine_pan(g_game.frame);
+        if (state_is_cine(g_game.state)) ui_cine_draw(&g_game);
+        else                             pal_video_draw_world(w, cam_x, cam_y);
         pal_profile_mark(PAL_PROF_SPRITES);
 
         ui_screens_draw(&g_game);
