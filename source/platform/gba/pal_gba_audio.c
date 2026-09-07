@@ -280,7 +280,6 @@ void audio_set_muted(bool muted) {
     }
 }
 
-bool audio_is_muted(void) { return s_muted; }
 
 void audio_update(void) {
     if (!s_ready || s_muted) return;

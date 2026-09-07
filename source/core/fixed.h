@@ -36,10 +36,6 @@ static inline fx_t fx_from_int(int32_t i) { return (fx_t)(i << FX_SHIFT); }
    negativas (borde izquierdo/superior del mundo). */
 static inline int32_t fx_to_int(fx_t f) { return (int32_t)(f >> FX_SHIFT); }
 
-static inline int32_t fx_round(fx_t f) {
-    return (int32_t)((f + (FX_ONE >> 1)) >> FX_SHIFT);
-}
-
 static inline fx_t fx_add(fx_t a, fx_t b) { return a + b; }
 static inline fx_t fx_sub(fx_t a, fx_t b) { return a - b; }
 static inline fx_t fx_neg(fx_t a)         { return -a; }

@@ -1,5 +1,22 @@
 # Notas de versión
 
+## v1.0-rc3 — candidata a versión
+
+Limpieza, sin ningún cambio de comportamiento: fuera el andamio de las
+Fases 1 y 2 (las dos salas de prueba, que no llamaba nadie desde que
+existen los niveles reales) y seis funciones públicas más que tampoco
+llamaba nadie. Se recuperan **2.680 bytes de IWRAM** — del 57 % al 49 % de
+uso — y 648 de ROM.
+
+| | |
+|---|---|
+| Tamaño | 119.676 bytes |
+| MD5 | `ac95ea1fcb91b641ffdafdcb57965c26` |
+
+El guardado no cambia: una partida de la rc2 sigue valiendo.
+
+---
+
 ## v1.0-rc2 — candidata a versión
 
 Igual que la rc1 en todo salvo en una cosa, que es la que hacía falta:
@@ -100,9 +117,9 @@ VRAM de fondos al 19 % y de sprites al 30 %.
   se puede capturar el audio del emulador.
 - ~~Al recargar, las chapas ya recogidas vuelven a estar en el mapa y las
   rejillas rotas vuelven a estar enteras.~~ **Saldado en la rc2.**
-- **2.632 bytes de IWRAM** ocupados por las salas de prueba de las Fases 1 y
-  2, que ya no llama nadie. Sobra memoria, así que se dejaron por si sirven
-  para depurar; borrarlas es una decisión pendiente, no un olvido.
+- ~~2.632 bytes de IWRAM ocupados por las salas de prueba de las Fases 1 y
+  2.~~ **Borradas en la rc3**, junto con seis funciones públicas más que no
+  llamaba nadie.
 
 ### Cambios notables de la última fase
 

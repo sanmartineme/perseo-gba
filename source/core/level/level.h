@@ -5,11 +5,9 @@
    (ver docs/PLAN_MIGRACION_GBA_C.md, tabla de trazabilidad, fila
    "Utilidades de colisión de mapa" / "Construcción de niveles").
 
-   Por ahora sólo existe level_get_test_room(): una habitación fija de
-   30x20 tiles (= 240x160 px, el tamaño exacto de la pantalla de GBA)
-   para poder probar la física del jugador en la Fase 1 sin depender
-   todavía del pipeline de assets (Fase 3) que genera los 7 niveles
-   reales a partir de los .json de assets/src/levels/.
+   Los siete niveles del juego los genera tools/levelgen a partir de los
+   .json de assets/src/levels; acá sólo vive el tipo `Level` y las
+   utilidades de colisión que lo leen.
    ===================================================================== */
 #ifndef PERSEO_CORE_LEVEL_H
 #define PERSEO_CORE_LEVEL_H
@@ -129,15 +127,5 @@ void level_carve(Level *lv, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint
 /* Tamaño máximo de un nivel, que es lo que se reserva en RAM para su
    copia mutable. Los 7 niveles del prototipo son todos de 200x44. */
 #define LEVEL_MAX_TILES (200 * 44)
-
-/* Habitación de prueba de la Fase 1 (ver docs/TAREAS_MIGRACION_GBA.md,
-   F1-06). Se reemplaza por los niveles reales generados por
-   tools/levelgen en la Fase 3 — el resto del motor no debería depender
-   de que esta función exista después de esa fase. */
-const Level *level_get_test_room(void);
-
-/* Sala de prueba de la Fase 2 (más ancha que un screenblock de
-   hardware, ver docs/TAREAS_MIGRACION_GBA.md, F2-09). */
-const Level *level_get_scroll_test_room(void);
 
 #endif /* PERSEO_CORE_LEVEL_H */

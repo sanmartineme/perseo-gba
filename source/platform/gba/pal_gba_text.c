@@ -207,10 +207,6 @@ void ui_text_flush(void) {
     memcpy32(se_mem[UI_SBB], s_shadow, (UI_ROWS * 32) / 2);
 }
 
-void ui_text_clear_rect(int col, int row, int w, int h) {
-    ui_text_panel(col, row, w, h, UI_FILL_NONE, false);
-}
-
 static inline void put_tile(int col, int row, uint16_t tile, int palbank) {
     if (col < 0 || col >= UI_COLS || row < 0 || row >= UI_ROWS) return;
     s_shadow[row * 32 + col] = SE_ID(tile) | SE_PALBANK(palbank);

@@ -88,6 +88,5 @@ void audio_play_song(SongId id);   /* SONG_NONE para silenciar */
 void audio_play_sfx(SfxId id);
 void audio_update(void);           /* una vez por frame */
 void audio_set_muted(bool muted);
-bool audio_is_muted(void);
 
 #endif /* PERSEO_CORE_AUDIO_H */

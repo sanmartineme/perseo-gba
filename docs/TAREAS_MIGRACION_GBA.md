@@ -40,7 +40,7 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 - [x] **F1-03** Definir `core/entity.h`: struct de entidad genérica. *(Hecho — catálogo de `EntityType` igual al de la sección 1 del plan.)*
 - [x] **F1-04** Implementar `core/entity_pool.h/.c`: pool estático (`ENTITY_POOL_CAPACITY=64`), sin malloc/free.
 - [ ] **F1-05** Escribir `tests/unit/test_entity_pool.c`. **Bloqueada por la misma razón que F1-02** (sin compilador nativo).
-- [x] **F1-06** Crear la habitación de prueba en `core/level/level.h`/`.c`: 30×20 tiles (240×160 px, exactamente la pantalla de GBA) con paredes laterales, suelo, plataforma flotante y saliente — pensada para poder probar cada mecánica de movimiento.
+- [x] **F1-06** Crear la habitación de prueba en `core/level/level.h`/`.c`: 30×20 tiles (240×160 px, exactamente la pantalla de GBA) con paredes laterales, suelo, plataforma flotante y saliente — pensada para poder probar cada mecánica de movimiento. *(Borrada después de la Fase 10: cumplió su función y no la llamaba nadie desde la Fase 3. Ver* Limpieza *al final.)*
 - [x] **F1-07** Implementar `tile_is_solid`/`level_tile_at`/`level_rect_solid` (equivalentes a `isSolid`/`tileAt`/`rectSolid`).
 - [x] **F1-08** Definir `core/player.h`: struct `Player` con los campos de `P{}` traducidos a `fx_t`.
 - [x] **F1-09** Portar movimiento horizontal (aceleración/desaceleración, fricción).
@@ -78,7 +78,7 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 - [x] **F2-06** Cámara conectada a `REG_BG2HOFS`/`REG_BG2VOFS` en `pal_video_sync_level`.
 - [x] **F2-07** BG1 como capa de paralaje simple (relleno único, se desplaza a la mitad de la velocidad de la cámara). *(Una sola capa, no las múltiples de `drawParallax()` — eso llega con el arte real de la Fase 3.)*
 - [x] **F2-08** Jugador como sprite OBJ real de hardware (16×16, color sólido, 4 tiles en modo 1D).
-- [x] **F2-09** Sala de prueba nueva de 100×20 tiles (`level_get_scroll_test_room`, deliberadamente >32 tiles) con plataformas "hito" cada 10 columnas. Recorrida de punta a punta sosteniendo el D-Pad: la pared izquierda desaparece, aparecen hitos nuevos según se avanza, y tras cruzar más de 32 tiles (el tamaño del buffer circular) **no aparece ningún tile corrupto** — confirma que el wraparound del mapa grande funciona.
+- [x] **F2-09** Sala de prueba nueva de 100×20 tiles (`level_get_scroll_test_room`, deliberadamente >32 tiles) con plataformas "hito" cada 10 columnas. Recorrida de punta a punta sosteniendo el D-Pad: la pared izquierda desaparece, aparecen hitos nuevos según se avanza, y tras cruzar más de 32 tiles (el tamaño del buffer circular) **no aparece ningún tile corrupto** — confirma que el wraparound del mapa grande funciona. *(La sala se borró después de la Fase 10, igual que la de la Fase 1. Ver* Limpieza *al final.)*
 - [ ] **F2-10** Medir FPS en mGBA durante el recorrido. **No hecho con mGBA** (bloqueado desde la Fase 0 por UAC) — VBA-M reporta 59-60 fps estables durante todas las pruebas de esta fase, pero no se hizo una medición rigurosa bajo carga máxima (más entidades/capas llegan en fases posteriores, donde SÍ conviene medir en serio — ver Fase 9).
 
 **Hallazgo de entorno importante (no es un bug de este proyecto):** el `.ini` de esta instalación de VBA-M no tiene el D-Pad mapeado a las flechas del teclado — está mapeado a `D`(derecha)/`A`(izquierda)/`W`/`S`, con el botón A de GBA en `L`, B en `K`, L-shoulder en `I`, R-shoulder (dash) en `O`. Todos los intentos previos de probar input en la Fase 0/1 que "no mostraban movimiento" eran por usar las flechas, no por un problema del código ni del entorno de automatización. Documentado acá para no repetir la confusión en fases futuras.
@@ -253,8 +253,9 @@ con las instrucciones para repetirlas.** Acá va el resumen y las decisiones.
   fijar: **el gasto no cambia de un nivel a otro** — `s_tiles` está
   dimensionado al nivel más grande posible y se reserva una vez, y los siete
   niveles comparten los mismos once tiles de fondo (se distinguen por la
-  paleta, decisión de la Fase 8). Queda anotada una deuda chica: 2.632 B de
-  IWRAM en las salas de prueba de las Fases 1 y 2, que ya no llama nadie.
+  paleta, decisión de la Fase 8). Aquí quedó anotada una deuda chica — 2.632
+  B de IWRAM en las salas de prueba de las Fases 1 y 2, que ya no llamaba
+  nadie — y **está saldada**: ver *Limpieza* al final de este archivo.
 - [x] **F9-03 … F9-06: no se hacen, y el motivo es la medición.** El peor
   frame de toda la campaña es el **87,4 %** (nivel 4, Residuos), con **0
   frames caídos** en las trece escenas medidas — siete recorridos de nivel y
@@ -458,6 +459,39 @@ frame.
 
 **Lo que sigue sin guardarse, y da igual:** los enemigos muertos reaparecen
 al recargar, que es lo normal en el género y lo que hacía el prototipo.
+
+---
+
+## Limpieza: fuera el andamio
+
+Las dos salas de prueba de las Fases 1 y 2 — `level_get_test_room()` y
+`level_get_scroll_test_room()` — hicieron su trabajo: validaron la física y
+el mecanismo de scroll de mapa grande cuando todavía no existía ningún
+nivel que cargar. Desde la Fase 3 no las llamaba nadie, y sus dos tilemaps
+estáticos seguían ocupando 2.600 bytes de IWRAM. El andamio se quita cuando
+el edificio se sostiene.
+
+Con ellas se fueron seis funciones públicas más que tampoco llamaba nadie,
+comprobado una por una: `entity_pool_count()`, `entity_pool_for_each()` (y
+su tipo `EntityVisitor`), `audio_is_muted()`, `fx_round()`,
+`game_scale_damage()` y `ui_text_clear_rect()`.
+
+**Una de ellas merecía irse por algo más que por no usarse.**
+`game_scale_damage()` venía con un comentario que decía "lo llama
+`world_damage_player()`", y hacía tiempo que no era verdad: la dificultad se
+aplica con `dmg_num`/`dmg_den` dentro del propio mundo. Un comentario que
+miente cuesta más caro que no tener comentario, porque el que lo lee se
+queda con una idea equivocada de por dónde pasa el daño.
+
+Recuperado: **2.680 bytes de IWRAM** — el uso baja del 57 % al 49 % — y 648
+bytes de ROM. Sin ningún cambio de comportamiento: la ROM arranca, se juega,
+el inventario abre y sigue a 60 fps.
+
+**Cómo se encontraron.** Cruzando cada función declarada en los headers
+propios contra sus usos en todo `source/`, y quedandose con las que sólo
+aparecían en su declaración y su definición. Vale la pena repetirlo de vez
+en cuando: el código muerto no molesta hasta que alguien lo lee y cree que
+sigue vivo.
 
 ---
 

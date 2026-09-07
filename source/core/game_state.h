@@ -139,9 +139,6 @@ bool game_has_save(void);
 void game_init(Game *g);
 void game_update(Game *g, const GameInput *in);
 
-/* Daño ya escalado por dificultad. Lo llama world_damage_player(). */
-int  game_scale_damage(const Game *g, int amount);
-
 /* El nivel que toca, o 0 si `i` se sale de los que existen. */
 const Level *game_level(uint8_t i);
 

@@ -66,9 +66,6 @@ void ui_text_clear(void);
    dejaba ver el repintado a medias. Ver el buffer sombra en
    source/platform/gba/pal_gba_text.c. */
 void ui_text_flush(void);
-/* Borra sólo un rectángulo, en tiles. */
-void ui_text_clear_rect(int col, int row, int w, int h);
-
 /* Escribe una cadena. Corta en el borde derecho de la pantalla.
    La fuente es ASCII: las vocales acentuadas y la eñe se escriben sin
    tilde en vez de salir como basura (ver la nota en pal_gba_text.c). */

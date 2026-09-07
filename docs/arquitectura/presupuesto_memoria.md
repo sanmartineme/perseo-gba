@@ -1,6 +1,6 @@
 # Presupuesto de memoria y de frame
 
-Medido sobre `build/perseo.gba` (120.324 bytes).
+Medido sobre `build/perseo.gba` (119.676 bytes).
 Los números de memoria salen del ELF enlazado (`arm-none-eabi-readelf -S`,
 `nm -S`) y del reparto de VRAM que fija el código; los de tiempo, del
 medidor de frame que lleva la propia ROM
@@ -14,9 +14,9 @@ Cómo repetir las mediciones: al final, en "Cómo se reproduce esto".
 
 | Recurso | Capacidad | Usado | Libre |
 |---|---:|---:|---:|
-| ROM (cartucho) | 32 MB | 120.324 B (0,4 %) | prácticamente todo |
+| ROM (cartucho) | 32 MB | 119.676 B (0,4 %) | prácticamente todo |
 | EWRAM | 262.144 B | **0 B** | 100 % |
-| IWRAM | 32.768 B | 18.624 B (57 %) | 14.144 B menos la pila |
+| IWRAM | 32.768 B | 15.944 B (49 %) | 16.824 B menos la pila |
 | VRAM de fondos | 65.536 B | 12.640 B (19 %) | 52.896 B |
 | VRAM de sprites | 32.768 B | 9.728 B (30 %) | 23.040 B |
 | Peor frame medido | 100 % | **87,4 %** (nivel 4) | 12,6 % |
@@ -32,11 +32,11 @@ optimizó (y por qué), y qué se dejó sin optimizar con el número delante.
 
 | Sección | Bytes | Qué es |
 |---|---:|---|
-| `.text` | 30.168 | código |
+| `.text` | 29.520 | código |
 | `.rodata` | 89.252 | datos constantes |
 | `.iwram` + `.data` (copias) | 328 | se copian a IWRAM al arrancar |
 | cabecera + relleno de `gbafix` | 580 | |
-| **total** | **120.324** | |
+| **total** | **119.676** | |
 
 Los datos pesan tres veces más que el código, y dentro de los datos mandan
 los siete tilemaps:
@@ -61,22 +61,20 @@ nada. Ver sección 6.
 
 ---
 
-## 3. IWRAM — 18.624 B de 32.768
+## 3. IWRAM — 15.944 B de 32.768
 
-`.bss` + `.data` terminan en `0x030048C0`. Por encima queda la pila (que crece hacia
+`.bss` + `.data` terminan en `0x03003E48`. Por encima queda la pila (que crece hacia
 abajo desde `0x03007F00`) y la tabla de interrupciones.
 
 | Símbolo | Bytes | Qué es |
 |---|---:|---|
 | `s_tiles` | 8.800 | copia mutable del tilemap del nivel |
 | `s_pool` (entidades) | 3.584 | pool de entidades vivas |
-| `s_scroll_room_tiles` | 2.000 | **sala de prueba de la Fase 2, ya nadie la usa** |
 | `s_shadow` | 1.280 | buffer sombra de la capa de interfaz (Fase 9) |
 | `s_pool` (partículas) | 640 | |
 | `s_lines` | 640 | ajuste de línea del texto |
-| `s_test_room_tiles` | 600 | **sala de prueba de la Fase 1, ya nadie la usa** |
-| `g_game` | 216 | el estado entero de la partida |
-| resto | ~744 | |
+| `g_game` | 336 | el estado entero de la partida |
+| resto | ~664 | |
 
 **El uso de IWRAM no cambia de un nivel a otro.** `s_tiles` está
 dimensionado a `LEVEL_MAX_TILES` (200 × 44 = 8.800), que es el mayor nivel
@@ -85,19 +83,26 @@ no reserva nada. Lo mismo el pool de entidades. Así que la tabla de arriba
 vale para los siete niveles, y ningún nivel puede empeorarla salvo que
 alguien suba `LEVEL_MAX_TILES`.
 
-### Deuda anotada: 2.632 B de salas de prueba
+### Borrado: 2.680 B que ocupaba el andamio
 
-`s_test_room_tiles` + `s_test_room` (Fase 1) y `s_scroll_room_tiles` +
-`s_scroll_room` (Fase 2) suman 2.632 bytes de IWRAM — el 14 % de lo
-usado — y sus constructores ocupan ROM. `level_get_test_room()` y
-`level_get_scroll_test_room()` siguen declaradas en
-[level.h](../../source/core/level/level.h) pero **no las llama nadie**, ni
-en `source/` ni en `tests/`: son el andamio con el que se validaron la
-física y el scroll antes de que existieran los niveles reales.
+Las salas de prueba de las Fases 1 y 2 (`level_get_test_room()` y
+`level_get_scroll_test_room()`) estuvieron un tiempo anotadas ací como
+deuda: sus dos tilemaps estáticos ocupaban 2.600 bytes de IWRAM y **no las
+llamaba nadie** desde que existen los niveles reales. Eran el andamio con
+el que se validaron la física y el scroll antes de que hubiera nivel que
+cargar, y el andamio se quita cuando el edificio se sostiene.
 
-No se han borrado porque sobra IWRAM y porque son el banco de pruebas más
-chico que hay para depurar la física sin cargar un nivel entero. Queda
-anotado para que la decisión sea de alguien y no un olvido.
+Con ellas se fueron otras seis funciones públicas que tampoco llamaba
+nadie — `entity_pool_count()`, `entity_pool_for_each()` (y su
+`EntityVisitor`), `audio_is_muted()`, `fx_round()`, `game_scale_damage()` y
+`ui_text_clear_rect()`. La de `game_scale_damage()` además venía con un
+comentario que afirmaba que la llamaba `world_damage_player()`, cosa que
+hacía años que no era cierta: la dificultad se aplica con `dmg_num`/
+`dmg_den` en el propio mundo. Un comentario que miente es peor que no
+tener comentario.
+
+Total recuperado: **2.680 bytes de IWRAM** (del 57 % al 49 % de uso) y 648
+de ROM.
 
 ---
 

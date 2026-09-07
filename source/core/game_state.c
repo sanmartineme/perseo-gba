@@ -46,13 +46,6 @@ const Level *game_level(uint8_t i) {
     return i < GAME_LEVEL_COUNT ? LEVELS[i] : 0;
 }
 
-int game_scale_damage(const Game *g, int amount) {
-    const DiffCfg *d = &DIFF_CFGS[g->difficulty];
-    /* round(amount * num / den) con enteros. */
-    int n = (amount * d->dmg_num + d->dmg_den / 2) / d->dmg_den;
-    return n < 1 ? 1 : n;
-}
-
 /* --------------------------------------------------------------------
    Guardado
    --------------------------------------------------------------------
