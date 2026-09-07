@@ -45,7 +45,15 @@ typedef struct LevelEntitySpawn {
     uint8_t type;     /* EntityType */
     int16_t tx, ty;   /* posición en tiles */
     int16_t param;    /* significado según el tipo: destino de una puerta,
-                         dirección inicial de un enemigo, etc. */
+                         dirección inicial de un enemigo, qué jefe es... */
+
+    /* Campos que sólo usan las entidades de encuentro de jefe. Se dejan
+       con nombre propio en vez de un array genérico porque son datos de
+       diseño de nivel que alguien va a tener que leer y ajustar a mano. */
+    int16_t gate[4];     /* bossgate: rectángulo que se rellena al sellar la arena */
+    int16_t passage[4];  /* bossgate: rectángulo que se vacía al abrir la salida */
+    int16_t yband[2];    /* bossgate: franja vertical donde el disparador es válido */
+    int16_t exit_tx, exit_ty; /* boss: dónde aparece la puerta al vencerlo */
 } LevelEntitySpawn;
 
 typedef struct Level {
@@ -75,6 +83,15 @@ static inline int16_t fx_to_tile(fx_t v) {
 /* Colisión de un rectángulo (en píxeles, Q8.8) contra los tiles sólidos
    del nivel. Traducción directa de rectSolid() del prototipo. */
 bool level_rect_solid(const Level *lv, fx_t x, fx_t y, int16_t w, int16_t h);
+
+/* Rellena un rectángulo de tiles (ambos extremos inclusive), igual que
+   carve() en el prototipo. Sólo funciona sobre el tilemap mutable que
+   arma world_load(): los tilemaps generados viven en ROM. */
+void level_carve(Level *lv, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t id);
+
+/* Tamaño máximo de un nivel, que es lo que se reserva en RAM para su
+   copia mutable. Los 7 niveles del prototipo son todos de 200x44. */
+#define LEVEL_MAX_TILES (200 * 44)
 
 /* Habitación de prueba de la Fase 1 (ver docs/TAREAS_MIGRACION_GBA.md,
    F1-06). Se reemplaza por los niveles reales generados por

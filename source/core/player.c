@@ -136,11 +136,9 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
     }
 
     /* --- Colisión horizontal ---
-       A diferencia del prototipo, acá NO se rompen rejillas oxidadas
-       (TILE_RUST) al dashear todavía: esa interacción con el nivel
-       llega junto al sistema de niveles reales y de partículas (Fase
-       3/4) — por ahora todo tile sólido simplemente detiene al
-       jugador, rejilla incluida. */
+       Dashear rompe las rejillas oxidadas: es la cerradura que abre el
+       Dash Sombrío, y por eso el tilemap del nivel vive en RAM (ver
+       world_load). */
     p->x = fx_add(p->x, p->vx);
     {
         int16_t tx0 = fx_to_tile(p->x);
@@ -149,7 +147,16 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
         int16_t ty1 = fx_to_tile(fx_add(p->y, fx_from_int(p->h - 1)));
         for (int16_t ty = ty0; ty <= ty1; ty++) {
             for (int16_t tx = tx0; tx <= tx1; tx++) {
-                if (tile_is_solid(level_tile_at(lv, tx, ty))) {
+                uint8_t id = level_tile_at(lv, tx, ty);
+                if (id == TILE_RUST && p->dash_t > 0) {
+                    world_carve(w, tx, ty, tx, ty, TILE_EMPTY);
+                    particles_burst(fx_from_int((int32_t)tx * TILE_SIZE + 4),
+                                    fx_from_int((int32_t)ty * TILE_SIZE + 4),
+                                    PCOL_BROWN, 6, FX_C(3.0));
+                    if (w->shake < 4) w->shake = 4;
+                    continue;
+                }
+                if (tile_is_solid(id)) {
                     if (p->vx > 0) p->x = fx_sub(fx_from_int((int32_t)tx * TILE_SIZE), fx_from_int(p->w));
                     else if (p->vx < 0) p->x = fx_from_int((int32_t)tx * TILE_SIZE + TILE_SIZE);
                     p->vx = 0;

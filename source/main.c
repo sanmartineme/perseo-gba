@@ -28,6 +28,7 @@
 #include "core/fixed.h"
 #include "core/level/level.h"
 #include "core/level/level01_tuneles.h"
+#include "core/level/level02_vertedero.h"
 #include "core/camera.h"
 #include "core/player.h"
 #include "core/world.h"
@@ -40,7 +41,10 @@ int main(void) {
     pal_video_init();
 
     World world;
-    world_load(&world, &level01_tuneles);
+    /* Fase 5: se arranca en el Nivel 2, que es el primero con jefe
+       (el Capataz). El encadenado real de niveles llega con las
+       puertas y la maquina de estados de la Fase 7. */
+    world_load(&world, &level02_vertedero);
 
     /* Debug: habilidades forzadas hasta que existan los santuarios
        (Fase 7) — ver la misma nota desde la Fase 1. */

@@ -23,6 +23,13 @@ ENTITY_TYPES = {
     "bat": "ENT_BAT", "thug": "ENT_THUG", "brute": "ENT_BRUTE",
 }
 
+# Nombre de jefe -> enum BossId de core/boss/boss_config.h. El orden es el
+# del recorrido del juego, igual que BOSS_CONFIG en el prototipo.
+BOSS_IDS = {
+    "capataz": "BOSS_CAPATAZ", "revisor": "BOSS_REVISOR", "toxico": "BOSS_TOXICO",
+    "maton": "BOSS_MATON", "guardia": "BOSS_GUARDIA", "betty": "BOSS_BETTY",
+}
+
 BANNER = ("/* ARCHIVO GENERADO por tools/levelgen/levelgen.py — no editar a mano.\n"
           "   Fuente: {src}\n"
           "   Ver tools/levelgen/schema_nivel.md */\n")
@@ -51,7 +58,21 @@ def emit(spec, src_path, out_dir):
         if kind not in ENTITY_TYPES:
             raise RuntimeError(f"{src_path.name}: tipo de entidad desconocido '{kind}'")
         tx, ty = e["at"]
-        ents.append((ENTITY_TYPES[kind], tx, ty, int(e.get("param", 0))))
+
+        param = e.get("param", 0)
+        if kind == "boss":
+            boss = e.get("boss")
+            if boss not in BOSS_IDS:
+                raise RuntimeError(f"{src_path.name}: jefe desconocido '{boss}'")
+            param = BOSS_IDS[boss]
+        else:
+            param = str(int(param))
+
+        gate = e.get("gate", [0, 0, 0, 0])
+        passage = e.get("passage", [0, 0, 0, 0])
+        yband = e.get("yband", [0, 0])
+        exit_at = e.get("exit", [0, 0])
+        ents.append((ENTITY_TYPES[kind], tx, ty, param, gate, passage, yband, exit_at))
 
     header = out_dir / f"{ident}.h"
     source = out_dir / f"{ident}.c"
@@ -66,7 +87,8 @@ def emit(spec, src_path, out_dir):
         f"#endif /* {guard} */\n",
         encoding="utf-8")
 
-    lines = [banner, '#include "level.h"', "", f"static const uint8_t {ident}_tiles[{w * h}] = {{"]
+    lines = [banner, '#include "level.h"', '#include "../boss/boss_config.h"', "",
+             f"static const uint8_t {ident}_tiles[{w * h}] = {{"]
     flat = [v for row in grid for v in row]
     for i in range(0, len(flat), 32):
         lines.append("    " + ",".join(str(v) for v in flat[i:i + 32]) + ",")
@@ -75,8 +97,12 @@ def emit(spec, src_path, out_dir):
 
     if ents:
         lines.append(f"static const LevelEntitySpawn {ident}_entities[{len(ents)}] = {{")
-        for kind, tx, ty, param in ents:
-            lines.append(f"    {{ {kind}, {tx}, {ty}, {param} }},")
+        for kind, tx, ty, param, gate, passage, yband, exit_at in ents:
+            g = ", ".join(str(v) for v in gate)
+            pa = ", ".join(str(v) for v in passage)
+            yb = ", ".join(str(v) for v in yband)
+            lines.append(f"    {{ {kind}, {tx}, {ty}, {param}, "
+                         f"{{ {g} }}, {{ {pa} }}, {{ {yb} }}, {exit_at[0]}, {exit_at[1]} }},")
         lines.append("};")
         ent_ref, ent_count = f"{ident}_entities", len(ents)
     else:

@@ -54,6 +54,18 @@ SPRITE_SHEETS = [
     {"name": "enemigos/enemies_16x16", "bank": "enemies", "size": (16, 16), "frames": [
         "thug1", "thug2", "brute1", "brute2",
     ]},
+    # Los jefes van en su propio banco: entre los seis usan 15 colores, que
+    # no entrarian junto a los del resto de enemigos en un mismo banco de 16.
+    # Cada uno tiene dos frames de marcha, y el orden aca fija el campo
+    # `sprite` de BOSS_CONFIGS en core/boss/boss_config.c.
+    {"name": "jefes/bosses", "bank": "boss", "size": (32, 32), "frames": [
+        "boss_capataz", "boss_capataz_2",
+        "boss_revisor", "boss_revisor_2",
+        "boss_toxico", "boss_toxico_2",
+        "boss_maton", "boss_maton_2",
+        "boss_guardia", "boss_guardia_2",
+        "boss_betty", "boss_betty_2",
+    ]},
     {"name": "fx/fx_8x8", "bank": "fx", "size": (8, 8), "frames": [
         "traza", "traza2", "junkproj", "shock", "heart", "chapa", "slash", "slash2",
     ]},

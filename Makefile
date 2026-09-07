@@ -92,11 +92,11 @@ export TEMP := $(CURDIR)/$(BUILD)/tmp
 # Por eso la hoja de particulas es fx_particles y no particles: chocaba
 # con source/core/particles.c y el enlazado fallaba por simbolo duplicado. Los .png y sus
 # .grit se buscan con vpath, asi que no hace falta repetir rutas.
-GEN_NAMES := perseo enemies_16x8 enemies_8x8 enemies_16x16 fx_8x8 fx_particles              tileset_tuneles
+GEN_NAMES := perseo enemies_16x8 enemies_8x8 enemies_16x16 fx_8x8 fx_particles bosses              tileset_tuneles
 GEN_C := $(addprefix $(GENDIR)/,$(addsuffix .c,$(GEN_NAMES)))
 GEN_H := $(GEN_C:.c=.h)
 
-ASSET_DIRS := assets/src/sprites/perseo assets/src/sprites/enemigos               assets/src/sprites/fx assets/src/tiles
+ASSET_DIRS := assets/src/sprites/perseo assets/src/sprites/enemigos               assets/src/sprites/fx assets/src/sprites/jefes assets/src/tiles
 vpath %.png $(ASSET_DIRS)
 vpath %.grit $(ASSET_DIRS)
 

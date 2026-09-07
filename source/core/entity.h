@@ -22,6 +22,8 @@
 #include <stdbool.h>
 #include "fixed.h"
 
+struct LevelEntitySpawn;
+
 typedef enum EntityType {
     ENT_NONE = 0,
     ENT_SIGN, ENT_LAMP, ENT_DOOR, ENT_VDOOR, ENT_SHRINE, ENT_BOSSGATE,
@@ -55,6 +57,12 @@ typedef struct Entity {
     uint16_t hit_swing; /* id del último zarpazo que ya le pegó: impide que
                            un mismo golpe cuente varias veces (el
                            e.hitSwing del prototipo) */
+    int8_t next_attack, last_attack; /* jefes: ataque elegido y el anterior,
+                                        para no repetir dos veces seguidas */
+    /* Datos del nivel de los que nació esta entidad. Guardar el puntero
+       (4 bytes) sale mucho más barato que copiarle los rectángulos de la
+       puerta de arena a cada una de las 64 ranuras del pool. */
+    const struct LevelEntitySpawn *spawn;
 } Entity;
 
 #endif /* PERSEO_CORE_ENTITY_H */

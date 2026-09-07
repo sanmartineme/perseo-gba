@@ -1,0 +1,39 @@
+{
+  "frame_size": [
+    32,
+    32
+  ],
+  "bank": "boss",
+  "frames": [
+    "boss_capataz",
+    "boss_capataz_2",
+    "boss_revisor",
+    "boss_revisor_2",
+    "boss_toxico",
+    "boss_toxico_2",
+    "boss_maton",
+    "boss_maton_2",
+    "boss_guardia",
+    "boss_guardia_2",
+    "boss_betty",
+    "boss_betty_2"
+  ],
+  "palette": {
+    "0": "transparente",
+    "1": "D",
+    "2": "G",
+    "3": "H",
+    "4": "K",
+    "5": "N",
+    "6": "O",
+    "7": "R",
+    "8": "V",
+    "9": "W",
+    "10": "Y",
+    "11": "n",
+    "12": "o",
+    "13": "p",
+    "14": "r",
+    "15": "v"
+  }
+}

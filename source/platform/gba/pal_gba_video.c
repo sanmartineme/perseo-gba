@@ -32,12 +32,14 @@
 #include "../../core/world.h"
 #include "../../core/particles.h"
 #include "../../core/entity_pool.h"
+#include "../../core/boss/boss_fsm.h"
 
 #include "tileset_tuneles.h"
 #include "perseo.h"
 #include "enemies_16x8.h"
 #include "enemies_8x8.h"
 #include "enemies_16x16.h"
+#include "bosses.h"
 #include "fx_8x8.h"
 #include "fx_particles.h"
 
@@ -48,10 +50,12 @@
 #define TB_E16X16       (TB_E8X8    + TILES_OF(enemies_8x8TilesLen))
 #define TB_FX           (TB_E16X16  + TILES_OF(enemies_16x16TilesLen))
 #define TB_PARTICLES    (TB_FX      + TILES_OF(fx_8x8TilesLen))
+#define TB_BOSSES       (TB_PARTICLES + TILES_OF(fx_particlesTilesLen))
 
 #define PALBANK_PERSEO  0
 #define PALBANK_ENEMY   1
 #define PALBANK_FX      2
+#define PALBANK_BOSS    3
 
 #define BG_CBB_INDEX 0
 #define BG2_SBB_INDEX 8
@@ -105,10 +109,12 @@ void pal_video_init(void) {
     memcpy32(&tile_mem_obj[0][TB_E16X16],    enemies_16x16Tiles, enemies_16x16TilesLen / 4);
     memcpy32(&tile_mem_obj[0][TB_FX],        fx_8x8Tiles,        fx_8x8TilesLen / 4);
     memcpy32(&tile_mem_obj[0][TB_PARTICLES], fx_particlesTiles,  fx_particlesTilesLen / 4);
+    memcpy32(&tile_mem_obj[0][TB_BOSSES],    bossesTiles,        bossesTilesLen / 4);
 
     memcpy32(&pal_obj_mem[PALBANK_PERSEO * 16], perseoPal,       perseoPalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_ENEMY * 16],  enemies_16x8Pal, enemies_16x8PalLen / 4);
     memcpy32(&pal_obj_mem[PALBANK_FX * 16],     fx_8x8Pal,       fx_8x8PalLen / 4);
+    memcpy32(&pal_obj_mem[PALBANK_BOSS * 16],   bossesPal,       bossesPalLen / 4);
 
     SBB_CLEAR(BG2_SBB_INDEX);
     SBB_CLEAR(BG1_SBB_INDEX);
@@ -246,6 +252,18 @@ void pal_video_draw_world(const World *w, int cam_x, int cam_y) {
     for (int i = 0; i < ENTITY_POOL_CAPACITY; i++) {
         const Entity *e = entity_pool_at(i);
         if (!e->alive) continue;
+        /* El jefe se dibuja aparte: es el unico de 32x32, tiene banco de
+           paleta propio y su frame lo decide la FSM segun el estado. */
+        if (e->type == ENT_BOSS) {
+            if (e->flash > 0 && (w->tick & 1)) continue;
+            const BossConfig *cfg = boss_config_of(e);
+            int frame = cfg->sprite * 2 + boss_sprite_frame(e, w->tick);
+            obj_put(fx_to_int(e->x) - cam_x, fx_to_int(e->y) - cam_y,
+                    (uint16_t)(TB_BOSSES + frame * 16),
+                    ATTR0_SQUARE, ATTR1_SIZE_32x32, PALBANK_BOSS, e->face < 0);
+            continue;
+        }
+
         int first = 0;
         const SpriteDef *def = sprite_for(e, &first);
         if (!def) continue;

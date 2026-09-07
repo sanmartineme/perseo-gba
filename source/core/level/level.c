@@ -31,6 +31,17 @@ bool level_rect_solid(const Level *lv, fx_t x, fx_t y, int16_t w, int16_t h) {
     return false;
 }
 
+void level_carve(Level *lv, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t id) {
+    uint8_t *tiles = (uint8_t *)lv->tiles;
+    for (int16_t y = y0; y <= y1; y++) {
+        if (y < 0 || y >= lv->h) continue;
+        for (int16_t x = x0; x <= x1; x++) {
+            if (x < 0 || x >= lv->w) continue;
+            tiles[(int32_t)y * lv->w + x] = id;
+        }
+    }
+}
+
 /* ---------- Habitación de prueba de la Fase 1 ----------
    30x20 tiles = 240x160 px, exactamente la pantalla de GBA: así el
    render de depuración (source/main.c) no necesita cámara/scroll

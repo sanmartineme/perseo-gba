@@ -133,26 +133,24 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 5 — Jefes
 
-- [ ] **F5-01** Definir `core/boss/boss_config.h`: tabla `const` equivalente a `BOSS_CONFIG{}` ([index.html:964-978](index.html#L964-L978)).
-- [ ] **F5-02** Definir `core/boss/boss_dialog.h`: tabla `const` equivalente a `BOSS_DIALOG{}` ([index.html:982-1013](index.html#L982-L1013)).
-- [ ] **F5-03** Implementar `core/boss/boss_fsm.c`, estados `wait`/`intro`/`choose`/`tele`.
-- [ ] **F5-04** Implementar estado `charge`.
-- [ ] **F5-05** Implementar estado `leap`.
-- [ ] **F5-06** Implementar estado `throw`.
-- [ ] **F5-07** Implementar estado `trashblast` (exclusivo de Betty).
-- [ ] **F5-08** Implementar estado `summon` (exclusivo de Betty, fase <40% HP).
-- [ ] **F5-09** Implementar estado `stun`.
-- [ ] **F5-10** Implementar estado `die` (incluye drop de corazones y apertura de puerta/`vdoor`).
-- [ ] **F5-11** Implementar el sistema de puerta de jefe (`bossgate`: sellar entrada al iniciar combate, abrir salida al vencerlo).
-- [ ] **F5-12** Renderizar un jefe grande compuesto por múltiples sprites OAM (empezar con El Capataz, 29×21 px).
-- [ ] **F5-13** Validar el combate contra El Capataz de principio a fin.
-- [ ] **F5-14** Validar El Revisor.
-- [ ] **F5-15** Validar El Tóxico.
-- [ ] **F5-16** Validar El Guardián.
-- [ ] **F5-17** Validar El Guardia.
-- [ ] **F5-18** Validar Betty (fase final, incluye `summon` + `trashblast` + `isFinal`).
+- [x] **F5-01** `core/boss/boss_config.{h,c}`: los 6 jefes como tabla de datos (vida, tamaño, sprite, si es el final). *(La idea que hace que esto funcione ya estaba en el prototipo y se conserva: **un solo motor de combate** para los seis, que se diferencian sólo por estos datos. Por eso hay seis enfrentamientos sin seis IAs que mantener.)*
+- [ ] **F5-02** `boss_dialog.h` con el guion de cada jefe. *(Pospuesto a la Fase 7 junto con el resto del sistema de diálogo: los textos ya están en los `.json` de nivel, pero mostrarlos necesita el visor de texto y la máquina de estados.)*
+- [x] **F5-03..F5-10** La FSM completa en `core/boss/boss_fsm.c`: `wait` → `intro` → `choose` → `tele` → ataque → vuelta a elegir, más `stun`, `die`, y los dos ataques exclusivos de Betty (`summon` y `trashblast`). *(La telegrafía (`tele`) es la que hace justo el combate: avisa antes de cada ataque y se acorta cuando al jefe le queda poca vida — toda la subida de tensión de la segunda fase sale de ahí. Y el ataque se elige al azar evitando repetir el anterior, que es lo que impide que el patrón se vuelva predecible sin escribir una secuencia a mano.)*
+- [x] **F5-11** Puerta de arena: sella la entrada al empezar la pelea y abre la salida al ganar. *(Esto obligó a un cambio de fondo: el tilemap generado vive en ROM, así que ahora `world_load` copia el nivel a RAM — 8.8 KB de los 256 KB de EWRAM. De paso eso habilitó el **Dash Sombrío rompiendo rejillas oxidadas**, que venía pendiente desde la Fase 1 y es la cerradura que abre esa habilidad.)*
+- [x] **F5-12** Jefe dibujado como sprite de 32×32 con banco de paleta propio. *(Entre los seis usan exactamente 15 colores + transparente: no habrían entrado en el banco de los demás enemigos.)*
+- [ ] **F5-13..F5-18** Validar los seis combates. *(Ver detalle abajo: parcialmente hecho.)*
 
-**Criterio de cierre de fase:** los 6 jefes son superables y respetan sus patrones documentados en [DOCUMENTACION_PERSEO.md](DOCUMENTACION_PERSEO.md).
+**Además, adelantado de la Fase 8:** se migró el **Nivel 2 (La Ciudad Vertedero)** a `.json`, porque el Nivel 1 no tiene jefe — el Capataz está en el 2 — y sin él no había nada que probar. `levelgen` aprendió a emitir los datos de encuentro (qué jefe, rectángulos de sellado y apertura, franja del disparador).
+
+**Bug real encontrado probando, y por qué importa:** el `case` que llama a `boss_update`/`update_bossgate` nunca llegó a insertarse en el despachador de entidades — una sustitución de texto que falló en silencio. El resultado era sutil y engañoso: el jefe aparecía dibujado y en su sitio, recibía daño (el golpe del jugador no pasa por ese despachador), pero **nunca se movía ni la puerta se cerraba**, y al bajarle la vida a cero se quedaba congelado en su agonía para siempre. Corregido; la lección es que conviene que las sustituciones de código fallen ruidosamente.
+
+**Qué quedó verificado en emulador y qué no, con honestidad:**
+- ✅ El jefe aparece, se dibuja bien (rata gris con gorro, ojo rojo y cola rosada) y queda apoyado en el suelo de su arena.
+- ✅ Recibe daño: se ven las partículas blancas del impacto.
+- ✅ Hace daño por contacto, y **no** lo hace durante su entrada ni agonizando.
+- ⚠️ **La secuencia completa entrada → ataques → muerte → apertura del paso no se confirmó de punta a punta en pantalla.** Automatizar el teclado hacia el emulador resultó demasiado poco fiable para llegar a la arena y encadenar golpes: en varias pruebas Perseo terminaba mirando al lado contrario o moría antes. Se recomienda un playtest a mano: entrar por la chimenea del Nivel 2, cruzar el pasaje de la izquierda y pelear.
+
+**Criterio de cierre de fase:** ⚠️ parcial — el motor de jefes está completo y compila limpio, con un encuentro real montado; falta confirmar los seis combates jugándolos.
 
 ---
 

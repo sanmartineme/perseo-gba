@@ -1,0 +1,82 @@
+{
+  "id": "level02_vertedero",
+  "name": "La Ciudad Vertedero",
+  "size": [200, 44],
+  "fill": 1,
+  "spawn": [4, 37],
+  "theme": { "brick": "n", "brickD": "K" },
+  "song": "lvl2",
+  "story": [
+    "Montañas de chatarra sepultan una vieja estación. Aquí manda EL CAPATAZ, lugarteniente de Betty. El rastro de Aurorita se hace más fuerte.",
+    "OBJETIVO: Cruza el vertedero y derrota al Capataz para arrancarle la verdad."
+  ],
+  "carve": [
+    [2, 28, 146, 39, 0],
+    [30, 8, 139, 23, 0],
+    [4, 8, 27, 23, 0],
+    [28, 20, 29, 23, 0],
+    [142, 8, 146, 39, 0],
+    [140, 34, 141, 39, 0],
+    [140, 8, 141, 11, 0],
+    [82, 24, 89, 27, 0],
+
+    [20, 36, 22, 39, 6],
+    [26, 33, 28, 39, 6],
+    [33, 36, 35, 39, 6],
+    [55, 35, 57, 39, 6],
+    [60, 31, 62, 39, 6],
+
+    [70, 38, 88, 39, 4],
+    [74, 37, 75, 37, 2],
+    [80, 35, 81, 35, 2],
+    [86, 37, 87, 37, 2],
+
+    [108, 34, 112, 39, 6],
+    [70, 23, 74, 23, 3],
+
+    [100, 8, 102, 19, 1],
+    [100, 20, 102, 23, 5],
+
+    [44, 39, 46, 39, 3],
+    [120, 39, 122, 39, 3]
+  ],
+  "entities": [
+    { "type": "sign", "at": [8, 38], "text": "La Ciudad Vertedero. Las montañas de chatarra ocultan a los matones de Betty." },
+    { "type": "lamp", "at": [50, 38] },
+    { "type": "shrine", "at": [108, 32], "ability": "climb", "name": "GARRA FELINA", "desc": "Agárrate a los muros y salta entre ellos" },
+    { "type": "lamp", "at": [124, 38] },
+    { "type": "sign", "at": [136, 38], "text": "Una chimenea vertical. Con mis garras podría escalar entre los muros." },
+    { "type": "lamp", "at": [120, 22] },
+    { "type": "sign", "at": [34, 22], "text": "Un hedor a rata gigante sale de esa cámara..." },
+
+    { "type": "bossgate", "at": [28, 20],
+      "gate": [28, 8, 29, 23], "passage": [28, 20, 29, 23], "yband": [60, 200] },
+    { "type": "boss", "at": [14, 20], "boss": "capataz", "exit": [8, 21] },
+
+    { "type": "roach", "at": [15, 38] },
+    { "type": "roach", "at": [40, 38] },
+    { "type": "roach", "at": [95, 38] },
+    { "type": "roach", "at": [130, 38] },
+    { "type": "rat", "at": [66, 38] },
+    { "type": "rat", "at": [100, 38] },
+    { "type": "rat", "at": [52, 22] },
+    { "type": "mosq", "at": [50, 14] },
+    { "type": "mosq", "at": [90, 12] },
+    { "type": "mosq", "at": [125, 14] },
+    { "type": "gunner", "at": [120, 38], "param": 1 },
+
+    { "type": "chapa", "at": [21, 34] },
+    { "type": "chapa", "at": [27, 31] },
+    { "type": "chapa", "at": [61, 29] },
+    { "type": "chapa", "at": [78, 33] },
+    { "type": "chapa", "at": [92, 36] },
+    { "type": "chapa", "at": [110, 32] },
+    { "type": "chapa", "at": [133, 30] },
+    { "type": "chapa", "at": [144, 20] },
+    { "type": "chapa", "at": [75, 20] },
+    { "type": "chapa", "at": [136, 14] },
+    { "type": "chapa", "at": [55, 18] },
+
+    { "type": "relic", "at": [45, 30], "relic": "bigotes" }
+  ]
+}

@@ -22,14 +22,32 @@ typedef struct Rect {
 } Rect;
 
 typedef struct World {
+    /* Apunta a level_rt: todo el juego lee el tilemap por acá. */
     const Level *lv;
+    /* Copia mutable del nivel. Los tilemaps generados viven en ROM, pero
+       el juego necesita poder cambiarlos: romper una rejilla oxidada con
+       el dash, sellar la arena de un jefe, abrir el paso al vencerlo. Se
+       copia el nivel entero a RAM (8.8 KB de los 256 KB de EWRAM) en vez
+       de llevar una lista de parches: sale más simple y no cuesta nada en
+       el camino caliente de la colisión. */
+    Level level_rt;
     Player player;
     uint32_t tick;
     int16_t shake;      /* sacudida de pantalla pendiente (la consume la cámara) */
     int16_t chapas;     /* monedas recogidas */
+
+    /* Encuentro de jefe en curso. `boss_active` distingue al jefe
+       dormido en su arena del que ya esta peleando: hasta que el
+       jugador cruza el disparador, el jefe no se mueve ni hace dano. */
+    Entity *boss;
+    Entity *boss_gate;
+    bool boss_active;
 } World;
 
 void world_load(World *w, const Level *lv);
+
+/* Cambia tiles del nivel en marcha (rejillas rotas, puertas de arena). */
+void world_carve(World *w, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8_t id);
 void world_update(World *w, const PlayerInput *in);
 
 /* ---------- Helpers compartidos por la IA de enemigos ---------- */
@@ -54,6 +72,10 @@ void world_patrol(const World *w, Entity *e, fx_t speed, int16_t width,
    (destello, empujón, botín). */
 void world_damage_player(World *w, int amount, int8_t dir);
 void world_hit_enemy(World *w, Entity *e, int amount);
+
+/* La llama la FSM del jefe al terminar su agonia: abre el paso que
+   se habia sellado al empezar la pelea. */
+void world_boss_defeated(World *w);
 
 /* Contacto enemigo-jugador: si se tocan, hiere a Perseo desde el lado
    correcto. Lo llaman todos los enemigos al final de su update. */
