@@ -42,7 +42,7 @@ no es lo mismo que haberlo escuchado.
 | `[x]` | La etiqueta `SRAM_V113` está en la ROM (sin ella los emuladores no emulan el guardado) | datos |
 | `[x]` | "PARTIDA NUEVA" arranca la cinemática de introducción | auto |
 | `[x]` | Con partida guardada aparece "CONTINUAR" | auto (Fase 7) |
-| `[ ]` | "CONTINUAR" carga y **se puede seguir jugando** | mano |
+| `[x]` | "CONTINUAR" carga y **se puede seguir jugando** | auto |
 | `[x]` | OPCIONES abre su pantalla | auto |
 | `[x]` | Reasignar un botón **intercambia** con quien lo tenía | auto |
 | `[x]` | Los controles reasignados sobreviven a apagar la consola | auto |
@@ -120,7 +120,8 @@ no es lo mismo que haberlo escuchado.
 | | Punto | Cómo |
 |---|---|---|
 | `[x]` | Las lámparas guardan solas al encenderse | auto (Fase 7) |
-| `[x]` | El guardado sobrevive a cerrar el emulador | auto (Fase 7) |
+| `[x]` | El guardado sobrevive a cerrar el emulador | auto |
+| `[x]` | Una lámpara guarda jugando de verdad, sin build de prueba | auto |
 | `[x]` | Morir devuelve a la última lámpara | auto |
 | `[ ]` | Morir devuelve a una lámpara **de otro nivel** correctamente | mano |
 | `[x]` | Reaparecer no tira ningún frame | auto |
