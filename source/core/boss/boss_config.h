@@ -28,6 +28,12 @@ typedef enum BossId {
 } BossId;
 
 typedef struct BossConfig {
+    /* Texto del prototipo, tal cual: el nombre aparece sobre la barra de
+       vida y el par victoryTitle/victoryDesc es el cartel que sale al
+       vencerlo (F7-02 y el estado GS_BANNER). */
+    const char *name;
+    const char *victory_title;
+    const char *victory_desc;
     int16_t hp;
     int16_t w, h;       /* caja de colisión, en píxeles */
     uint8_t sprite;     /* índice de su par de frames en la hoja de jefes */

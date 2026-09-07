@@ -43,6 +43,17 @@ bool pal_input_throw_pressed(void);
 bool pal_input_start_pressed(void);
 bool pal_input_select_pressed(void);
 
+/* Flancos que sólo usan los menús (Fase 7): moverse por una lista y
+   confirmar/cancelar. El juego no los necesita — ahí la cruceta se lee
+   sostenida — pero un menú que avanza mientras mantienes abajo es
+   inusable. */
+bool pal_input_up_pressed(void);
+bool pal_input_down_pressed(void);
+bool pal_input_left_pressed(void);
+bool pal_input_right_pressed(void);
+bool pal_input_confirm_pressed(void);
+bool pal_input_cancel_pressed(void);
+
 /* ---------- Vídeo (Fase 2) -----------------------------------------
    Modo 0 (4 capas tiled, sin rotación/escala — ver docs/PLAN_MIGRACION_GBA_C.md,
    sección 2): BG2 es el tilemap colisionable del nivel, BG1 una capa de
@@ -75,10 +86,20 @@ void pal_video_set_parallax_scroll(int cam_x, int cam_y);
    acá sólo se traduce a atributos de OAM. */
 void pal_video_draw_world(const World *w, int cam_x, int cam_y);
 
-/* ---------- Audio (Fase 6) ---------- */
-void pal_audio_init(void);
-/* void pal_audio_play_song(const Song *song); */
-/* void pal_audio_play_sfx(SfxId id); */
+/* Mosaico de hardware, 0 (nítido) a 15 (bloques de 16 px). Es la
+   traducción de pixelate()/startTransition() del prototipo: allá se
+   redibujaba el frame a baja resolución y se escalaba; acá el efecto ya
+   existe en el hardware y no cuesta nada. */
+void pal_video_set_mosaic(int amount);
+
+/* Apaga la capa de objetos: las pantallas de menú y de historia tapan el
+   juego, y los sprites tienen prioridad sobre los fondos, así que se
+   colarían por encima del texto. */
+void pal_video_show_sprites(bool on);
+
+/* ---------- Audio (Fase 6) ----------
+   La interfaz de audio quedó declarada en core/audio.h (es core quien
+   define QUÉ suena), así que no hay nada de audio en la PAL. */
 
 /* ---------- Guardado (Fase 7) ---------- */
 bool pal_save_read(void *dst, uint32_t size);

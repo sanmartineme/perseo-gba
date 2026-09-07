@@ -4,6 +4,7 @@
 
 #include "level.h"
 #include "../boss/boss_config.h"
+#include "../audio.h"
 
 static const uint8_t level02_vertedero_tiles[8800] = {
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -318,9 +319,17 @@ static const LevelEntitySpawn level02_vertedero_entities[32] = {
     { ENT_RELIC, 45, 30, 0, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0 }, 0, 0 },
 };
 
+static const char *const level02_vertedero_story[2] = {
+    "Montañas de chatarra sepultan una vieja estación. Aquí manda EL CAPATAZ, lugarteniente de Betty. El rastro de Aurorita se hace más fuerte.",
+    "OBJETIVO: Cruza el vertedero y derrota al Capataz para arrancarle la verdad.",
+};
+
 const Level level02_vertedero = {
     .w = 200, .h = 44,
     .tiles = level02_vertedero_tiles,
     .spawn_tx = 4, .spawn_ty = 37,
     .entities = level02_vertedero_entities, .entity_count = 32,
+    .song = SONG_LVL2,
+    .name = "La Ciudad Vertedero",
+    .story = level02_vertedero_story, .story_count = 2,
 };

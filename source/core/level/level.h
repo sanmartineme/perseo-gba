@@ -62,6 +62,17 @@ typedef struct Level {
     int16_t spawn_tx, spawn_ty;  /* tile de aparición del jugador */
     const LevelEntitySpawn *entities;
     int16_t entity_count;
+    /* Musica del nivel: un SongId de core/audio.h. Se guarda como
+       uint8_t a proposito, para que el tilemap no arrastre una
+       dependencia del subsistema de audio. */
+    uint8_t song;
+
+    /* Texto del nivel, tal cual venia en el .json: el rotulo de zona que
+       aparece al entrar y las paginas de historia que lo presentan. Vive
+       en ROM y nadie lo copia. */
+    const char *name;
+    const char *const *story;
+    uint8_t story_count;
 } Level;
 
 bool tile_is_solid(uint8_t id);

@@ -29,3 +29,10 @@ bool pal_input_throw_pressed(void)  { return key_hit(KEY_L) != 0; }
 
 bool pal_input_start_pressed(void)  { return key_hit(KEY_START)  != 0; }
 bool pal_input_select_pressed(void) { return key_hit(KEY_SELECT) != 0; }
+
+bool pal_input_up_pressed(void)    { return key_hit(KEY_UP)    != 0; }
+bool pal_input_down_pressed(void)  { return key_hit(KEY_DOWN)  != 0; }
+bool pal_input_left_pressed(void)  { return key_hit(KEY_LEFT)  != 0; }
+bool pal_input_right_pressed(void) { return key_hit(KEY_RIGHT) != 0; }
+bool pal_input_confirm_pressed(void) { return key_hit(KEY_A) != 0; }
+bool pal_input_cancel_pressed(void)  { return key_hit(KEY_B) != 0; }

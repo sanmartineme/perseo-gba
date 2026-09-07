@@ -42,6 +42,12 @@ typedef struct World {
     Entity *boss;
     Entity *boss_gate;
     bool boss_active;
+
+    /* Escala de daño de la dificultad elegida, como fracción entera
+       (ver DIFF_CFGS en core/game_state.c). Vive acá y no en Game para
+       que world_damage_player() no necesite conocer la partida entera;
+       la fija game_load_level(). */
+    uint8_t dmg_num, dmg_den;
 } World;
 
 void world_load(World *w, const Level *lv);

@@ -156,13 +156,17 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 6 — Audio
 
-- [ ] **F6-01** Definir `core/audio_seq.h`: interfaz agnóstica de hardware para reproducir un `Song`/`Sfx` (equivalente conceptual a `playSong`, [index.html:1128](index.html#L1128)).
-- [ ] **F6-02** Implementar `platform/gba/pal_gba_audio.c`: control directo de los 4 canales PSG (2 cuadradas, onda programable, ruido).
-- [ ] **F6-03** Escribir `audio_data.c`: traducción de `SONGS{}` ([index.html:1085-1127](index.html#L1085-L1127)) a tablas `const` de patrones (frecuencia/forma de onda/duty por paso).
-- [ ] **F6-04** Implementar el secuenciador de música (avance de patrón por BPM, loop).
-- [ ] **F6-05** Portar `SFX.*` ([index.html:1064](index.html#L1064)): golpe, traza, explosión (`splat`), daño, victoria, boss, ability, break.
-- [ ] **F6-06** Integrar las llamadas de SFX en los puntos correspondientes ya implementados (ataque, daño, muerte de jefe, recolección, etc.).
-- [ ] **F6-07** Validar en emulador cada canción (`title`, `lvl1`-`lvl7`, `boss`, `bossFinal`, `end`) comparando tempo/forma con el prototipo web.
+- [x] **F6-01** Interfaz agnóstica de hardware. Quedó en `source/core/audio.h`, no en `audio_seq.h`: es un solo header y separarlo en dos no aportaba nada. Declara los tipos (`Song`, `SfxDef`, `SongId`, `SfxId`) y también las funciones `audio_init/play_song/play_sfx/update` — a propósito, para que el código de juego pida un sonido sin incluir nada de `platform/`.
+- [x] **F6-02** `source/platform/gba/pal_gba_audio.c`. Reparto de canales: ch1 cuadrada = tonos de efecto (con barrido interpolado a mano, no el barrido geométrico del hardware, que no reproduce la rampa lineal del prototipo); ch2 cuadrada = melodía; ch3 onda programable = bajo, con tablas reales de cuadrada/triangular/seno/sierra; ch4 ruido = percusión y ruido de efectos, con prioridad para el efecto.
+- [x] **F6-03** `source/core/audio_data.c`, generado por `tools/audiogen/songs_to_psg.py`: 11 canciones + 15 efectos. Las canciones se parsean de `SONGS{}` (son datos puros); los efectos son CÓDIGO en el prototipo (`tone()`/`noise()` encadenados con `setTimeout`), así que están transcritos a mano en el generador, uno a uno.
+- [x] **F6-04** Secuenciador en `audio_update()`. El `setInterval(60000/bpm/2)` del prototipo son `1800/bpm` frames por paso a 60 Hz (10 a 23 frames según la canción). Bajo, melodía y percusión recorren sus patrones por separado con `paso % largo`, igual que el original, y el `echo` se reproduce como un retrigger más flojo a 6/7 frames.
+- [x] **F6-05** Los 15 efectos del prototipo, incluido el arpegio de 4 notas de `ability`, que se resuelve contando frames en vez de con `setTimeout`.
+- [x] **F6-06** Llamadas integradas: salto y salto doble, dash, ataque, traza, rejilla rota (`player.c`); daño al jugador, impacto y muerte de enemigo, recolección, entrada del jefe y apertura de la puerta al vencerlo (`world.c`). La música la elige el nivel: se añadió el campo `Level.song`, que `levelgen.py` saca de la clave `"song"` que los `.json` ya traían.
+- [~] **F6-07** Validado que la ROM compila (41 KB) y que el juego corre en VBA-M con el audio activo, sin cuelgue ni regresión visual. La afinación se verificó numéricamente contra las notas reales: el error máximo del bajo (ch3) es 0,13 % y el de la melodía (ch2) 0,35 %, y ninguna nota se sale del rango de su registro. **Lo que NO está verificado es el sonido en sí**: en este entorno no hay forma de capturar la salida de audio del emulador, así que comparar canción por canción con el prototipo web requiere una escucha manual.
+
+**Nota de hardware (limitación real, no un pendiente):** las cuadradas de la GBA no bajan de 64 Hz. Cinco efectos (`splat`, `hurt`, `break`, `door`, `boss`) apuntaban a 40-60 Hz, así que el destino del barrido se recorta a 64 Hz *antes* de interpolar; de ese modo la caída se reparte por toda su duración en vez de llegar al piso a mitad de camino y quedarse plana.
+
+**Pendiente de la Fase 7:** el prototipo tiene una tecla de silencio; `audio_set_muted()` ya está implementada, pero todavía no hay ningún botón conectado a ella (va con el menú de pausa).
 
 **Criterio de cierre de fase:** música y SFX reconociblemente equivalentes al prototipo en todos los niveles y jefes.
 
@@ -170,20 +174,28 @@ desde `perseo-gba/`. Un emulador portable (VisualBoyAdvance-M) quedó extraído 
 
 ## Fase 7 — UI, narrativa, progresión y guardado
 
-- [ ] **F7-01** Implementar `ui/text.h/.c`: envoltorio fino sobre el motor de texto TTE de libtonc.
-- [ ] **F7-02** Implementar `ui/hud.c` completo: corazones, monedas (`chapas`), iconos de habilidad activa (equivalente a `drawHUD`, [index.html:2382](index.html#L2382)).
-- [ ] **F7-03** Implementar `ui/menu_title.c`: título, selección de dificultad (`DIFF_CFG`), sonido on/off.
-- [ ] **F7-04** Implementar `ui/inventory.c`: pestañas de habilidades y reliquias, selección/equipar (equivalente a `drawInventory`, [index.html:2677](index.html#L2677)).
-- [ ] **F7-05** Implementar `ui/transition.c`: transición mosaico entre niveles (equivalente a `pixelate`/`startTransition`, [index.html:2159-2187](index.html#L2159-L2187)).
-- [ ] **F7-06** Implementar `core/dialogue.c` + visor de diálogo de jefe (globos con nombre + texto).
-- [ ] **F7-07** Implementar la cinemática de introducción por viñetas (`INTRO_STORY`, [index.html:1218](index.html#L1218)).
-- [ ] **F7-08** Implementar la cinemática final (`ENDING_STORY`) y los créditos (`CREDITS`).
-- [ ] **F7-09** Implementar los santuarios (`shrine`): desbloqueo de habilidad al interactuar.
-- [ ] **F7-10** Implementar las reliquias equipables y su efecto real en `damage()`/regeneración (Colmillo Afilado, Pata de la Suerte, Bigotes de Acero).
-- [ ] **F7-11** Definir `core/save.h/.c`: struct `SaveData` (sección 10 del plan).
-- [ ] **F7-12** Implementar `platform/gba/pal_gba_save.c`: lectura/escritura a SRAM con checksum.
-- [ ] **F7-13** Conectar los checkpoints (`lamp`) con guardado automático y respawn.
-- [ ] **F7-14** Prueba end-to-end: partida nueva → avance de progreso → guardar → reset del emulador → cargar y continuar correctamente.
+**F7-00 (no estaba en la lista, pero lo pedía todo lo demás)** `core/game_state.{h,c}`: la partida deja de ser un bucle que siempre juega y pasa a tener estados, como el `state` del prototipo ([index.html:1542](index.html#L1542)) — título, historia, juego, cartel, inventario, pausa, muerte, transición. `main.c` se quedó en 100 líneas: traduce botones, pide actualizar, pide dibujar. También se añadió `Level.name` y `Level.story` (los `.json` ya traían esos campos, sólo faltaba emitirlos) y los nombres y textos de victoria de los seis jefes a `BOSS_CONFIGS`.
+
+- [x] **F7-01** Capa de texto: `ui/text.h` (interfaz) + `platform/gba/pal_gba_text.c` (implementación). **Desviación:** no es un envoltorio sobre TTE. Se usa la *fuente* de libtonc (`sys8Glyphs`) pero no su motor — TTE mete color y tile base en un mismo `cattr` de 16 bits que hay que armar a mano, y su modo de superficie de bits costaría ~19 KB de VRAM. Descomprimir los glifos y escribir las entradas de screenblock nosotros son 40 líneas y deja el color como un parámetro normal. La UI vive en BG0, en una rejilla de 30x20 tiles: **el texto queda alineado a 8 px**, que es el compromiso de la época y a 240x160 se lee perfecto. Las tildes y eñes se decodifican de UTF-8 y se dibujan sin acento (la fuente es ASCII): se pierde el acento en pantalla, no en el texto fuente.
+- [x] **F7-02** `ui/hud.c`: chapas, etiquetas de habilidad, barra de vida del jefe con su nombre y rótulo de zona al entrar. La vida de Perseo sigue siendo corazones de OAM, que ya estaban y con 4-6 puntos se leen mejor que una barra de tiles.
+- [x] **F7-03** `ui/menu_title.c`. El logotipo se dibuja con bloques macizos de 3x5 tiles por letra: con una fuente de 8x8 el título de 36 px del prototipo no existe, y dejar la pantalla más importante en letra chica habría sido la peor opción. El fondo es el nivel 1 desplazándose de verdad, con un **velo semitransparente hecho con la mezcla alfa del hardware** (BG3 como capa de velo, ver el reparto de prioridades en `pal_gba_video.c`) en vez de una caja opaca: así el túnel se sigue viendo, como en el original.
+- [~] **F7-04** Hay un inventario funcional que lista habilidades y chapas, pero **le faltan las pestañas y el equipar reliquias**: eso depende de F7-10, que todavía no está.
+- [x] **F7-05** Transición mosaico. No hizo falta redibujar nada a baja resolución como `pixelate()`: **la GBA tiene el mosaico en hardware** (`REG_MOSAIC`), así que la transición cuesta una escritura de 16 bits por frame. Queda implementada y enganchada al estado `GS_TRANS`, pero **todavía no la dispara nadie**: el encadenado de niveles al vencer a un jefe es F7-13/Fase 8.
+- [ ] **F7-06** Diálogo de jefe.
+- [ ] **F7-07** Cinemática de introducción (`INTRO_STORY`). La *historia por nivel* sí funciona ya (la primera vez que se entra a un nivel), con ajuste de línea por palabras y contador de páginas.
+- [ ] **F7-08** Cinemática final y créditos.
+- [ ] **F7-09** Santuarios.
+- [ ] **F7-10** Reliquias equipables.
+- [ ] **F7-11** `core/save.h/.c`.
+- [ ] **F7-12** `platform/gba/pal_gba_save.c`.
+- [ ] **F7-13** Checkpoints (`lamp`) + guardado automático.
+- [ ] **F7-14** Prueba end-to-end de guardado.
+
+**Lo que sí quedó hecho de dificultad:** `DIFF_CFG` está portado y aplicado de verdad. El escalado de daño vive en `World` (`dmg_num`/`dmg_den`, fracción entera: la GBA no tiene coma flotante) y lo fija `game_load_level()`. Ojo con "fácil": su `dmgTaken` de 0.5 no reduce nada cuando el golpe vale 1, que es casi todo el juego — lo que cambia de verdad es el corazón extra. Se conservó igual para no alterar el balance del original.
+
+**Verificado en emulador:** menú de título (logotipo, velo translúcido sobre el túnel en movimiento, flechas parpadeando, las tres opciones), pantalla de historia del nivel 1 (nombre de zona, texto ajustado a 24 columnas, contador "1/2") y el HUD en juego. Las capturas de los estados que hay detrás del título se hicieron con builds temporales que arrancan en ese estado, porque **la inyección de teclas en VBA-M sigue sin funcionar** en este entorno (se probó `SendInput` con la ventana en primer plano, además de `PostMessage`). El código temporal se revirtió y la ROM final está construida desde el fuente limpio.
+
+**Resuelto de paso:** las capturas venían recortadas a la esquina superior izquierda desde la Fase 1. La causa era el escalado de pantalla de Windows: `GetClientRect` devuelve píxeles lógicos y `PrintWindow` dibuja físicos. Con `SetProcessDpiAwareness` la captura sale entera.
 
 **Criterio de cierre de fase:** partida jugable de principio a fin con guardado persistente.
 

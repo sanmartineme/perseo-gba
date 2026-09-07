@@ -137,7 +137,7 @@ El requisito explícito del proyecto es: **modularidad para poder mejorar el ren
 3. **Punto fijo, no flotante.** Toda la física actual (`SPD=1.35`, `GRV=0.22`, `JV=4.2`, etc., en [index.html:1656](index.html#L1656)) se re-expresa en Q8.8 o Q12.4 (tipo `fx_t` de 32 bits, ver `tonc_fixed.h` de libtonc). Es un cambio mecánico, valor por valor, no un rediseño.
 4. **Tablas de datos const en ROM.** `ABILITIES[]`, `RELICS[]`, `BOSS_CONFIG{}`, `BOSS_DIALOG{}`, `SONGS{}` se traducen a `static const` en C — el compilador los coloca en ROM, no consumen RAM. Es la misma filosofía "data-driven" del JS, simplemente en un lenguaje sin recolector de basura.
 5. **Mutación mínima del nivel.** El JS ya hace esto bien: `LV.t` es la base del tilemap y `broken[i]` es un `Set` aparte con las coordenadas rotas ([index.html:1607](index.html#L1607)). Se conserva el patrón: el tilemap de cada nivel es un array `const` en ROM, y solo un pequeño *overlay* de "tiles modificados" vive en RAM y se aplica al cargar el nivel. Esto reduce drásticamente el uso de EWRAM comparado con copiar 8.8 KB por nivel a RAM mutable sin necesidad.
-6. **Interfaces desacopladas por sistema**, cada una con un `.h` que declara *qué hace* sin exponer *cómo*: `physics.h`, `boss_fsm.h`, `render_queue.h` (cola de comandos de dibujo que `platform/gba/` consume para escribir a OAM/VRAM), `audio_seq.h` (reproduce un `Song` sin saber qué son los canales PSG por debajo). Esto es lo que permite reemplazar una implementación por otra más rápida sin tocar a quien la llama.
+6. **Interfaces desacopladas por sistema**, cada una con un `.h` que declara *qué hace* sin exponer *cómo*: `physics.h`, `boss_fsm.h`, `render_queue.h` (cola de comandos de dibujo que `platform/gba/` consume para escribir a OAM/VRAM), `audio.h` (reproduce un `Song` sin saber qué son los canales PSG por debajo). Esto es lo que permite reemplazar una implementación por otra más rápida sin tocar a quien la llama.
 
 ---
 
@@ -151,7 +151,7 @@ El prototipo web codifica todo el contenido como literales JS. Ninguno de esos f
 | `COL{}` (paleta) | 28 colores lógicos, 2 variantes (gba/gbc) | Paleta maestra de referencia para `grit`; se agrupa en sub-paletas de 16 colores por sprite/tileset (límite real de GBA en modo 4bpp) |
 | Tiles de mundo (`drawTile`, 9 tipos) | Dibujado procedural por `id` | Se pre-renderizan una vez como tileset 8×8 (PNG) y se convierten con `grit`; el `id` de tile pasa a ser un índice de tileset, igual que hoy, pero ya no se "dibuja" en runtime, se referencia |
 | `buildLevel1..7()` (niveles) | Llamadas a `carve()`/`E()` en código | `tools/levelgen/levelgen.py`: se conserva el mismo lenguaje declarativo (rectángulos + lista de entidades) en un `.json` por nivel, y el script emite un header `.h` con el tilemap empaquetado (1 byte/tile) + un array de entidades iniciales. Alternativa de futuro: importar desde Tiled (`.tmx`) si el equipo de niveles lo prefiere — el formato intermedio (`level.h`) no cambia. |
-| `SONGS{}` / `SFX{}` | Patrones de notas por paso + tipo de onda | `tools/audiogen/` traduce cada patrón a una secuencia de escrituras a los registros de sonido PSG (frecuencia, duty, envolvente) reproducida por un secuenciador propio en `core/audio_seq.c`; no requiere convertir a audio muestreado |
+| `SONGS{}` / `SFX{}` | Patrones de notas por paso + tipo de onda | `tools/audiogen/` traduce cada patrón a una secuencia de escrituras a los registros de sonido PSG (frecuencia, duty, envolvente) reproducida por un secuenciador propio en `platform/gba/pal_gba_audio.c`; no requiere convertir a audio muestreado |
 | `INTRO_STORY` / `ENDING_STORY` / `CREDITS` / `BOSS_DIALOG` | Arrays de `{scene, who, text}` | Se copian a `static const` en `dialogue_data.c`; el único trabajo real es decidir el wrapping de texto para el visor de texto de libtonc (TTE) a 240×160 |
 
 **Regla de oro del pipeline:** nada bajo `assets/gen/` se edita a mano — siempre se regenera desde `assets/src/` o `tools/`. Esto es lo que permite que, en la fase de optimización, se pueda cambiar de 4bpp a 8bpp en un tileset concreto (por ejemplo) regenerando un solo comando, sin tocar el código de juego.
@@ -193,7 +193,7 @@ El prototipo web codifica todo el contenido como literales JS. Ninguno de esos f
 | `core/dialogue.{h,c}` + `dialogue_data.c` | `BOSS_DIALOG`, `INTRO_STORY`, `ENDING_STORY`, `CREDITS` [982](index.html#L982), [1218](index.html#L1218) | Datos y avance de diálogo/cinemática |
 | `core/save.{h,c}` | `broken`, `collected`, `collectedRelics`, `checkpoint`, `stats` | Struct de guardado serializable a SRAM |
 | `core/game_state.{h,c}` | variable `state` + todo `step()` [2923](index.html#L2923) | Máquina de estados de alto nivel (title/story/play/dead/inventory/banner/trans/ending/credits) |
-| `core/audio_seq.{h,c}` + `audio_data.c` | `SONGS{}`, `SFX{}`, `playSong` [1085](index.html#L1085) | Secuenciador de música/SFX en términos de forma de onda (independiente del backend) |
+| `core/audio.h` + `audio_data.c` | `SONGS{}`, `SFX{}`, `playSong` [1085](index.html#L1085) | Secuenciador de música/SFX en términos de forma de onda (independiente del backend) |
 | `platform/gba/pal_gba_video.c` | `drawWorld/drawParallax/drawEnt/drawPlayer/pipeH/pipeV` [2159-2381](index.html#L2159-L2381) | Escritura real a VRAM/OAM/registros de scroll |
 | `platform/gba/pal_gba_input.c` | `keys{}`, `IN{}` [1576](index.html#L1576) | Lectura de `REG_KEYINPUT` |
 | `platform/gba/pal_gba_audio.c` | `tone/noise` (Web Audio) [1046](index.html#L1046) | Programación de los 4 canales PSG reales |
@@ -241,7 +241,7 @@ Cada fase tiene un criterio de aceptación verificable en emulador. El tamaño (
 - **Aceptación:** los 6 combates de jefe son superables y respetan sus patrones de ataque documentados en [DOCUMENTACION_PERSEO.md](DOCUMENTACION_PERSEO.md).
 
 ### Fase 6 — Audio (M)
-- Secuenciador PSG (`audio_seq.c`) reproduciendo los patrones de `SONGS{}`/`SFX{}` portados.
+- Secuenciador PSG (`pal_gba_audio.c`) reproduciendo los patrones de `SONGS{}`/`SFX{}` portados.
 - **Aceptación:** todas las canciones y SFX suenan reconociblemente igual que en el prototipo web (mismo tempo/forma de onda relativa).
 
 ### Fase 7 — UI, narrativa y progresión completa (L)
@@ -311,8 +311,8 @@ perseo-gba/
 │   │   ├── save.c
 │   │   ├── game_state.h
 │   │   ├── game_state.c
-│   │   ├── audio_seq.h
-│   │   ├── audio_seq.c
+│   │   ├── audio.h
+│   │   ├── audio_data.c
 │   │   ├── rng.h
 │   │   ├── rng.c
 │   │   │

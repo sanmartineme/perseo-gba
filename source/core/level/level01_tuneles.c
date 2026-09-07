@@ -4,6 +4,7 @@
 
 #include "level.h"
 #include "../boss/boss_config.h"
+#include "../audio.h"
 
 static const uint8_t level01_tuneles_tiles[8800] = {
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -314,9 +315,17 @@ static const LevelEntitySpawn level01_tuneles_entities[28] = {
     { ENT_RELIC, 110, 36, 0, { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0 }, 0, 0 },
 };
 
+static const char *const level01_tuneles_story[2] = {
+    "Las cloacas primarias de Silencio son la puerta al imperio de Betty. Perseo desciende guiado por el aroma de Aurorita.",
+    "OBJETIVO: Atraviesa los túneles y abre camino hacia la Ciudad Vertedero.",
+};
+
 const Level level01_tuneles = {
     .w = 200, .h = 44,
     .tiles = level01_tuneles_tiles,
     .spawn_tx = 4, .spawn_ty = 26,
     .entities = level01_tuneles_entities, .entity_count = 28,
+    .song = SONG_LVL1,
+    .name = "Túneles de Filtración",
+    .story = level01_tuneles_story, .story_count = 2,
 };

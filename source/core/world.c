@@ -5,6 +5,7 @@
 #include "rng.h"
 #include "enemies/enemy_common.h"
 #include "boss/boss_fsm.h"
+#include "audio.h"
 #include <string.h>
 
 /* ---------- Cajas de colisión ---------- */
@@ -81,6 +82,12 @@ void world_damage_player(World *w, int amount, int8_t dir) {
     if (p->inv > 0 || p->dash_t > 0 || p->dead) return;
 
     if (amount < 1) amount = 1;
+    /* Escalado por dificultad, con la misma cuenta que el prototipo:
+       max(1, round(n * dmgTaken)). */
+    if (w->dmg_den) {
+        amount = (amount * w->dmg_num + w->dmg_den / 2) / w->dmg_den;
+        if (amount < 1) amount = 1;
+    }
     p->hp -= (int16_t)amount;
     p->inv = 90;
     p->vx = fx_mul(fx_from_int(dir ? dir : 1), FX_C(2.0));
@@ -88,6 +95,7 @@ void world_damage_player(World *w, int amount, int8_t dir) {
     w->shake = 6;
     particles_burst(fx_add(p->x, fx_from_int(5)), fx_add(p->y, fx_from_int(6)),
                     PCOL_RED, 6, FX_C(2.5));
+    audio_play_sfx(SFX_HURT);
     if (p->hp <= 0) {
         p->hp = 0;
         p->dead = true;
@@ -107,6 +115,7 @@ void world_hit_enemy(World *w, Entity *e, int amount) {
     fx_t cx = fx_add(box.x, fx_from_int(box.w / 2));
     fx_t cy = fx_add(box.y, fx_from_int(box.h / 2));
     particles_burst(cx, cy, PCOL_WHITE, 5, FX_C(2.5));
+    audio_play_sfx(SFX_HIT_ENEMY);
     /* Empujón hacia el lado contrario al jugador; a un jefe no lo mueve. */
     if (e->type != ENT_BOSS) {
         e->vx = fx_mul(fx_from_int(e->x < w->player.x ? -1 : 1), FX_C(1.5));
@@ -120,6 +129,7 @@ void world_hit_enemy(World *w, Entity *e, int amount) {
             return;
         }
         particles_burst(cx, cy, PCOL_RED, 10, FX_C(3.0));
+        audio_play_sfx(SFX_SPLAT);
         /* Uno de cada cuatro suelta un corazón. */
         if (rng_chance(25)) {
             Entity *drop = entity_pool_alloc(ENT_HP);
@@ -151,6 +161,7 @@ static void update_pickup(World *w, Entity *e) {
         if (p->hp < p->max_hp) p->hp++;
         particles_burst(cx, cy, PCOL_RED, 6, FX_C(2.0));
     }
+    audio_play_sfx(SFX_PICK);
     entity_pool_free(e);
 }
 
@@ -164,6 +175,8 @@ void world_carve(World *w, int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint8
 
 void world_boss_defeated(World *w) {
     w->boss_active = false;
+    audio_play_sfx(SFX_DOOR);
+    audio_play_song(w->lv->song);
     w->boss = 0;
     if (w->boss_gate && w->boss_gate->spawn) {
         const int16_t *p = w->boss_gate->spawn->passage;
@@ -185,6 +198,7 @@ void world_load(World *w, const Level *lv) {
     w->tick = 0;
     w->shake = 0;
     w->chapas = 0;
+    if (!w->dmg_den) { w->dmg_num = 1; w->dmg_den = 1; }
 
     entity_pool_reset();
     particles_reset();
@@ -258,6 +272,8 @@ static void update_bossgate(World *w, Entity *gate) {
     w->boss->state = BOSS_INTRO;
     w->boss->timer = 0;
     w->shake = 5;
+    audio_play_sfx(SFX_BOSS);
+    audio_play_song(SONG_BOSS);
 }
 
 /* Muerte: por ahora se reinicia el nivel entero. El prototipo mostraba

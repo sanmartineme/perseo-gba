@@ -35,6 +35,35 @@ BANNER = ("/* ARCHIVO GENERADO por tools/levelgen/levelgen.py — no editar a ma
           "   Ver tools/levelgen/schema_nivel.md */\n")
 
 
+
+# El JSON nombra la cancion como en SONGS{} del prototipo; el motor la
+# quiere como SongId. La tabla vive aca y no en el JSON para que los
+# niveles no tengan que conocer los identificadores de C.
+SONG_ENUM = {
+    "title": "SONG_TITLE", "lvl1": "SONG_LVL1", "lvl2": "SONG_LVL2",
+    "lvl3": "SONG_LVL3", "lvl4": "SONG_LVL4", "lvl5": "SONG_LVL5",
+    "lvl6": "SONG_LVL6", "lvl7": "SONG_LVL7", "boss": "SONG_BOSS",
+    "bossFinal": "SONG_BOSS_FINAL", "end": "SONG_END",
+}
+
+
+
+def c_string(text):
+    """Literal de C. El texto va en UTF-8 tal cual: la capa de UI decodifica
+    y dibuja las vocales acentuadas sin tilde (ver pal_gba_text.c), asi que
+    los .json se siguen escribiendo en espanol normal."""
+    out = text.replace("\\", "\\\\").replace('"', '\\"')
+    return '"' + out + '"'
+
+
+def song_enum(name):
+    if not name:
+        return "SONG_NONE"
+    if name not in SONG_ENUM:
+        raise RuntimeError(f"Cancion desconocida en el nivel: {name}")
+    return SONG_ENUM[name]
+
+
 def build_tiles(spec):
     w, h = spec["size"]
     fill = spec.get("fill", 1)
@@ -87,7 +116,7 @@ def emit(spec, src_path, out_dir):
         f"#endif /* {guard} */\n",
         encoding="utf-8")
 
-    lines = [banner, '#include "level.h"', '#include "../boss/boss_config.h"', "",
+    lines = [banner, '#include "level.h"', '#include "../boss/boss_config.h"', '#include "../audio.h"', "",
              f"static const uint8_t {ident}_tiles[{w * h}] = {{"]
     flat = [v for row in grid for v in row]
     for i in range(0, len(flat), 32):
@@ -109,6 +138,17 @@ def emit(spec, src_path, out_dir):
         ent_ref, ent_count = "0", 0
     lines.append("")
 
+    story = spec.get("story", [])
+    if story:
+        lines.append(f"static const char *const {ident}_story[{len(story)}] = {{")
+        for page in story:
+            lines.append(f"    {c_string(page)},")
+        lines.append("};")
+        lines.append("")
+        story_ref, story_count = f"{ident}_story", len(story)
+    else:
+        story_ref, story_count = "0", 0
+
     sx, sy = spec["spawn"]
     lines += [
         f"const Level {ident} = {{",
@@ -116,6 +156,9 @@ def emit(spec, src_path, out_dir):
         f"    .tiles = {ident}_tiles,",
         f"    .spawn_tx = {sx}, .spawn_ty = {sy},",
         f"    .entities = {ent_ref}, .entity_count = {ent_count},",
+        f"    .song = {song_enum(spec.get('song'))},",
+        f"    .name = {c_string(spec['name'])},",
+        f"    .story = {story_ref}, .story_count = {story_count},",
         "};",
         "",
     ]

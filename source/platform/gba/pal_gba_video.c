@@ -72,6 +72,10 @@
 #define TILEG_PARALLAX 10
 
 
+/* Se activa junto con el mosaico de fondos, para que en la transición se
+   pixele la escena entera y no sólo el decorado. */
+static uint16_t s_obj_mosaic = 0;
+
 static void set_map_entry(int sbb, int world_tx, int world_ty, u16 tile_graphic) {
     se_mem[sbb][(world_ty & MAP_MASK) * MAP_TILES + (world_tx & MAP_MASK)] = SE_ID(tile_graphic);
 }
@@ -123,8 +127,16 @@ void pal_video_init(void) {
         se_mem[BG1_SBB_INDEX][i] = SE_ID(TILEG_PARALLAX);
     }
 
-    REG_BG2CNT = BG_CBB(BG_CBB_INDEX) | BG_SBB(BG2_SBB_INDEX) | BG_4BPP | BG_REG_32x32 | BG_PRIO(0);
-    REG_BG1CNT = BG_CBB(BG_CBB_INDEX) | BG_SBB(BG1_SBB_INDEX) | BG_4BPP | BG_REG_32x32 | BG_PRIO(1);
+    /* BG_MOSAIC va puesto siempre: con REG_MOSAIC en 0 no hace nada, y
+       así la transición sólo tiene que tocar un registro. */
+    /* Prioridades, de delante hacia atrás: BG0 texto (0), BG3 velo (0,
+       detrás de BG0 porque en los empates gana el BG de número menor),
+       objetos (1), BG2 el nivel (1: los objetos ganan el empate contra
+       un fondo), BG1 paralaje (2). Las dos capas de UI las configura
+       pal_gba_text.c. */
+    REG_BG2CNT = BG_CBB(BG_CBB_INDEX) | BG_SBB(BG2_SBB_INDEX) | BG_4BPP | BG_REG_32x32 | BG_MOSAIC | BG_PRIO(1);
+    REG_BG1CNT = BG_CBB(BG_CBB_INDEX) | BG_SBB(BG1_SBB_INDEX) | BG_4BPP | BG_REG_32x32 | BG_MOSAIC | BG_PRIO(2);
+    REG_MOSAIC = 0;
 
     oam_init(oam_mem, 128);
 
@@ -160,6 +172,20 @@ void pal_video_sync_level(const Level *lv, int cam_x, int cam_y) {
 
     REG_BG2HOFS = cam_x;
     REG_BG2VOFS = cam_y;
+}
+
+void pal_video_set_mosaic(int amount) {
+    if (amount < 0) amount = 0;
+    if (amount > 15) amount = 15;
+    uint16_t a = (uint16_t)amount;
+    /* Los cuatro campos de 4 bits: BG horizontal/vertical y OBJ h/v. */
+    REG_MOSAIC = a | (a << 4) | (a << 8) | (a << 12);
+    s_obj_mosaic = amount ? ATTR0_MOSAIC : 0;
+}
+
+void pal_video_show_sprites(bool on) {
+    if (on) REG_DISPCNT |= DCNT_OBJ;
+    else    REG_DISPCNT &= ~DCNT_OBJ;
 }
 
 void pal_video_set_parallax_scroll(int cam_x, int cam_y) {
@@ -211,9 +237,9 @@ static void obj_put(int scr_x, int scr_y, uint16_t tile, uint16_t shape,
         scr_y < -32 || scr_y > SCREEN_H + 32) return;
 
     OBJ_ATTR *obj = &oam_mem[s_obj_next++];
-    obj->attr0 = ATTR0_Y(scr_y & 0xFF) | shape;
+    obj->attr0 = ATTR0_Y(scr_y & 0xFF) | shape | s_obj_mosaic;
     obj->attr1 = ATTR1_X(scr_x & 0x1FF) | size | (flip_h ? ATTR1_HFLIP : 0);
-    obj->attr2 = ATTR2_ID(tile) | ATTR2_PALBANK(palbank);
+    obj->attr2 = ATTR2_ID(tile) | ATTR2_PALBANK(palbank) | ATTR2_PRIO(1);
 }
 
 /* Elige la hoja y el frame base de cada tipo de entidad. Devuelve NULL

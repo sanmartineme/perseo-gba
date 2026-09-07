@@ -3,6 +3,7 @@
 #include "entity_pool.h"
 #include "particles.h"
 #include "projectiles.h"
+#include "audio.h"
 
 /* Constantes de física — traducción valor-por-valor de las constantes
    locales de updatePlayer() en el prototipo (SPD, ACC, GRV, JV, MAXF) y
@@ -70,8 +71,7 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
         p->dash_t = PLAYER_DASH_FRAMES;
         p->dash_cd = PLAYER_DASH_COOLDOWN;
         p->vy = 0;
-        /* SFX.dash() y el rastro de partículas llegan en las Fases 6/4
-           (audio y sistema de partículas todavía no existen). */
+        audio_play_sfx(SFX_DASH);
     }
 
     if (p->dash_t > 0) {
@@ -116,17 +116,20 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
             p->coyote = 0;
             p->jump_buffer = 0;
             p->spun = false;
+            audio_play_sfx(SFX_JUMP);
         } else if (p->wall != 0) {
             p->vy = fx_neg(PLAYER_WALLJUMP_VY);
             p->vx = fx_neg(fx_mul(fx_from_int((int32_t)p->wall), PLAYER_WALLJUMP_VX));
             p->face = (int8_t)-p->wall;
             p->jump_buffer = 0;
             p->spun = false;
+            audio_play_sfx(SFX_JUMP);
         } else if (p->ab.double_jump && p->can_double_jump) {
             p->vy = fx_neg(PLAYER_DJUMP_VY);
             p->can_double_jump = false;
             p->jump_buffer = 0;
             p->spun = true;
+            audio_play_sfx(SFX_DJUMP);
         }
     }
     /* Salto de altura variable: soltar el botón corta el impulso hacia
@@ -154,6 +157,7 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
                                     fx_from_int((int32_t)ty * TILE_SIZE + 4),
                                     PCOL_BROWN, 6, FX_C(3.0));
                     if (w->shake < 4) w->shake = 4;
+                    audio_play_sfx(SFX_BREAK);
                     continue;
                 }
                 if (tile_is_solid(id)) {
@@ -252,6 +256,7 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
         p->atk_t = PLAYER_ATK_FRAMES;
         p->atk_cd = PLAYER_ATK_COOLDOWN;
         p->swing++;
+        audio_play_sfx(SFX_ATK);
     }
     if (p->atk_t > 0) {
         p->atk_t--;
@@ -280,6 +285,7 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
         fx_t sx = p->face > 0 ? fx_add(p->x, fx_from_int(p->w - 2))
                               : fx_sub(p->x, fx_from_int(6));
         proj_spawn_traza(sx, fx_add(p->y, fx_from_int(3)), p->face);
+        audio_play_sfx(SFX_TRAZA);
         particles_burst(fx_add(p->x, fx_from_int(p->face > 0 ? p->w : 0)),
                         fx_add(p->y, fx_from_int(6)), PCOL_BROWN, 4, FX_C(2.0));
     }
