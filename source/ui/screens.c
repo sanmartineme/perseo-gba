@@ -132,8 +132,12 @@ static void draw_pause(const Game *g) {
         }
     }
 
-    ui_text_put(8, 14, UI_GREY, "CHAPAS");
-    ui_text_put(15, 14, UI_YELLOW, ui_itoa(g->world.chapas));
+    ui_text_put(8, 13, UI_GREY, "CHAPAS");
+    ui_text_put(15, 13, UI_YELLOW, ui_itoa(g->world.chapas));
+    /* Qué botón elige. Sin esto el menú engaña: B y START salen al juego,
+       así que quien intente confirmar con cualquiera de los dos ve que
+       "sólo funciona REANUDAR" y da las otras filas por rotas. */
+    ui_text_center(14, UI_GREY, "A: ELEGIR   B: SEGUIR");
 }
 
 static void draw_dead(const Game *g) {

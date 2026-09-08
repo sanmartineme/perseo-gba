@@ -265,7 +265,10 @@ static const CheatCode CHEATS[] = {
       "MODO INVENCIBLE", "Perseo ya no recibe dano." },
     /* Atras, atras, atras y B. */
     { 4, { CK_LEFT, CK_LEFT, CK_LEFT, CK_B }, CHEAT_SUPER,
-      "MODO SUPERSAYAYIN", "Invencible, con las tres habilidades y pegando el triple." },
+      "MODO SUPERSAYAYIN", "Invencible, las tres habilidades, el triple de dano, y vuela: arriba y abajo." },
+    /* Arriba, abajo, arriba, abajo. */
+    { 4, { CK_UP, CK_DOWN, CK_UP, CK_DOWN }, CHEAT_FANTASMA,
+      "MODO FANTASMA", "Perseo atraviesa las paredes." },
 };
 #define CHEAT_COUNT ((int)(sizeof CHEATS / sizeof CHEATS[0]))
 
@@ -303,9 +306,17 @@ static const CheatCode *cheat_feed(Game *g, const GameInput *in) {
 /* Empuja los modos al mundo, como se hace con la dificultad. */
 static void apply_cheats(Game *g) {
     Player *p = &g->world.player;
-    p->god   = g->cheat_mode == CHEAT_INVENCIBLE || g->cheat_mode == CHEAT_SUPER;
-    p->super = g->cheat_mode == CHEAT_SUPER;
-    if (g->cheat_mode == CHEAT_SUPER || g->opt_all_powers) {
+    bool super = g->cheat_mode == CHEAT_SUPER;
+    bool ghost = g->cheat_mode == CHEAT_FANTASMA;
+
+    /* El fantasma tambien es intocable: metido dentro de la roca, morir
+       sin poder salir no seria gracioso. */
+    p->god    = super || ghost || g->cheat_mode == CHEAT_INVENCIBLE;
+    p->super  = super;
+    p->fly    = super;
+    p->noclip = ghost;
+
+    if (super || g->opt_all_powers) {
         p->ab.double_jump = p->ab.dash = p->ab.climb = true;
         g->progress.ab = p->ab;
     }

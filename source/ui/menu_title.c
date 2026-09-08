@@ -158,13 +158,14 @@ void ui_options_draw(const Game *g) {
        ruido — y contarlas sin querer le arruina el descubrimiento a
        quien no las buscaba. */
     if (g->opt_cheats) {
-        ui_text_put(3, 13, UI_GREY, "JUGANDO:");
-        ui_text_put(3, 14, UI_GREEN, "A DER IZQ A");
-        ui_text_put(16, 14, UI_GREY, "INVENCIBLE");
-        ui_text_put(3, 15, UI_GREEN, "IZQ IZQ IZQ B");
-        ui_text_put(17, 15, UI_GREY, "SUPER");
+        ui_text_put(2, 13, UI_GREY, "JUGANDO:");
+        ui_text_put(2, 14, UI_GREEN, "A DER IZQ A");
+        ui_text_put(15, 14, UI_GREY, "INVENCIBLE");
+        ui_text_put(2, 15, UI_GREEN, "IZQ IZQ IZQ B");
+        ui_text_put(16, 15, UI_GREY, "SUPER+VOLAR");
+        ui_text_put(2, 16, UI_GREEN, "ARR ABA ARR ABA");
+        ui_text_put(18, 16, UI_GREY, "PAREDES");
     }
 
-    ui_text_center(17, UI_GREY, "IZQ/DER CAMBIA");
-    ui_text_center(18, UI_GREY, "B: VOLVER");
+    ui_text_center(18, UI_GREY, "IZQ/DER CAMBIA   B: VOLVER");
 }

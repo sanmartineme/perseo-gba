@@ -462,6 +462,37 @@ al recargar, que es lo normal en el género y lo que hacía el prototipo.
 
 ---
 
+## Dos claves más, y el menú de pausa que engañaba
+
+**MODO FANTASMA** (arriba, abajo, arriba, abajo): Perseo atraviesa las
+paredes. **MODO SUPERSAYAYIN** gana además el vuelo: sin gravedad, sube y
+baja con la cruceta.
+
+Dos detalles que había que resolver o el modo se volvía en contra:
+
+- **Atravesando paredes no hay suelo del que despegar**, así que el salto
+  doble y el margen de coyote se recargan solos. Sin eso, el primer salto
+  dentro de la roca sería el último.
+- **Sin geometría que lo detenga, Perseo se sale del nivel** — y la cámara,
+  que sí está acotada al mapa, se queda clavada en el borde y lo pierde de
+  vista sin forma de volver. Se le acota la posición a los límites del mapa:
+  dentro puede ir a donde quiera, fuera no.
+
+El fantasma es además intocable, por lo mismo: metido dentro de la roca,
+morir sin poder salir no sería gracioso.
+
+**Y el menú de pausa, que parecía roto y no lo estaba.** Reportado como "sólo
+funciona REANUDAR". Se probó entrada por entrada y las tres funcionan. Lo que
+fallaba era otra cosa: **el menú no decía qué botón elige**, y como B y START
+salen al juego, quien intentaba confirmar con cualquiera de los dos veía
+reanudarse la partida y daba las otras dos filas por rotas. Ahora el panel lo
+dice: `A: ELEGIR   B: SEGUIR`.
+
+Vale la pena anotar el patrón, porque se repite: el síntoma ("no funciona")
+apuntaba al código, y el problema estaba en lo que la pantalla no contaba.
+
+---
+
 ## El fondo, la vida y el menú de pausa
 
 Tres cosas que se vieron comparando con la referencia:

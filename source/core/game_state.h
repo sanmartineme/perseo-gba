@@ -50,7 +50,9 @@ typedef enum GameState {
 typedef enum CheatMode {
     CHEAT_NONE = 0,
     CHEAT_INVENCIBLE,     /* no recibe daño */
-    CHEAT_SUPER           /* invencible + las tres habilidades + pega el triple */
+    CHEAT_SUPER,          /* invencible, las tres habilidades, pega el triple y vuela */
+    CHEAT_FANTASMA        /* atraviesa las paredes (y no recibe daño: dentro de
+                             la roca, morir sin poder salir no sería gracioso) */
 } CheatMode;
 
 /* Cuántas pulsaciones se recuerdan para reconocer una clave. */

@@ -51,7 +51,10 @@ no es lo mismo que haberlo escuchado.
 | `[x]` | Reasignar un botón **intercambia** con quien lo tenía | auto |
 | `[x]` | Los controles reasignados sobreviven a apagar la consola | auto |
 | `[x]` | PODERES: TODOS da las tres habilidades | auto |
-| `[x]` | Las dos claves se activan y avisan con su cartel | auto |
+| `[x]` | Las cuatro claves se activan y avisan con su cartel | auto |
+| `[x]` | MODO FANTASMA: Perseo atraviesa las paredes | auto |
+| `[x]` | MODO SUPERSAYAYIN: Perseo vuela con la cruceta | auto |
+| `[x]` | Volando o atravesando paredes no se sale del nivel | auto |
 | `[ ]` | Jugar con los controles cambiados se siente bien | mano |
 | `[ ]` | El ajuste de SONIDO se oye | mano |
 | `[ ]` | El ajuste de DIFICULTAD cambia el daño recibido de verdad | mano |

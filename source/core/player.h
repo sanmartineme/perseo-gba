@@ -76,6 +76,8 @@ typedef struct Player {
        el mundo, que no sabe que Game existe. */
     bool god;      /* no recibe dano */
     bool super;    /* ademas pega mucho mas fuerte */
+    bool noclip;   /* atraviesa las paredes */
+    bool fly;      /* vuela: sin gravedad, sube y baja con la cruceta */
 
     /* --- Reliquias (Fase 7) --- */
     uint8_t relics_found;     /* mascara de RELIC_BIT(id) */

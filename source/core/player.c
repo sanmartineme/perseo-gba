@@ -39,6 +39,9 @@ bool player_grant_ability(Player *p, AbilityId id) {
 #define PLAYER_SPEED          FX_C(1.35)  /* SPD */
 #define PLAYER_ACCEL          FX_C(0.30)  /* ACC */
 #define PLAYER_GRAVITY        FX_C(0.22)  /* GRV */
+/* A la que sube y baja volando, con el MODO SUPERSAYAYIN puesto. Algo mas
+   lenta que la carrera, para que se pueda apuntar. */
+#define PLAYER_FLY_SPEED      FX_C(1.6)
 #define PLAYER_JUMP_V         FX_C(4.2)   /* JV  */
 #define PLAYER_MAX_FALL       FX_C(4.0)   /* MAXF */
 #define PLAYER_FRICTION       FX_C(0.7)
@@ -130,7 +133,15 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
             p->vx = fx_mul(p->vx, PLAYER_FRICTION);
         }
         /* Gravedad */
-        p->vy = fx_min(fx_add(p->vy, PLAYER_GRAVITY), PLAYER_MAX_FALL);
+        if (p->fly) {
+            /* Volando manda la cruceta y no la gravedad: arriba sube,
+               abajo baja, y sin tocar nada se queda flotando. */
+            p->vy = in->up   ? fx_neg(PLAYER_FLY_SPEED)
+                  : in->down ? PLAYER_FLY_SPEED
+                  : 0;
+        } else {
+            p->vy = fx_min(fx_add(p->vy, PLAYER_GRAVITY), PLAYER_MAX_FALL);
+        }
     }
 
     /* --- Muro (Garra Felina) --- */
@@ -183,7 +194,7 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
        Dash Sombrío, y por eso el tilemap del nivel vive en RAM (ver
        world_load). */
     p->x = fx_add(p->x, p->vx);
-    {
+    if (!p->noclip) {
         int16_t tx0 = fx_to_tile(p->x);
         int16_t tx1 = fx_to_tile(fx_add(p->x, fx_from_int(p->w - 1)));
         int16_t ty0 = fx_to_tile(p->y);
@@ -213,7 +224,13 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
     fx_t prev_feet = fx_add(p->y, fx_from_int(p->h));
     p->y = fx_add(p->y, p->vy);
     p->on_ground = false;
-    {
+    if (p->noclip) {
+        /* Atravesando paredes no hay suelo del que despegar, asi que el
+           salto y el dash se recargan solos: si no, el primer salto
+           dentro de la roca seria el ultimo. */
+        p->can_double_jump = true;
+        p->coyote = PLAYER_COYOTE_FRAMES;
+    } else {
         int16_t tx0 = fx_to_tile(p->x);
         int16_t tx1 = fx_to_tile(fx_add(p->x, fx_from_int(p->w - 1)));
         if (p->vy >= 0) {
@@ -246,6 +263,20 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
         }
     }
     if (!p->on_ground && p->coyote > 0) p->coyote--;
+
+    /* Volando o atravesando paredes ya no hay geometria que lo detenga, y
+       sin esto se sale del nivel: la camara se queda clavada en el borde y
+       Perseo desaparece de la pantalla, sin forma de volver. Se le acota a
+       los limites del mapa, que es lo unico que hace falta — dentro puede
+       ir a donde quiera. */
+    if (p->noclip || p->fly) {
+        fx_t max_x = fx_from_int((int32_t)(lv->w - 1) * TILE_SIZE);
+        fx_t max_y = fx_from_int((int32_t)(lv->h - 1) * TILE_SIZE);
+        if (p->x < 0) p->x = 0;
+        if (p->x > max_x) p->x = max_x;
+        if (p->y < 0) p->y = 0;
+        if (p->y > max_y) p->y = max_y;
+    }
 
     /* --- Animación de caminata (bandera; los frames de arte real
        llegan en la Fase 3) --- */

@@ -1,5 +1,29 @@
 # Notas de versión
 
+## v1.0-rc7 — candidata a versión
+
+**Dos claves más** y una pista que faltaba en el menú de pausa.
+
+| Código (jugando, con las claves encendidas) | Modo |
+|---|---|
+| A, derecha, izquierda, A | INVENCIBLE |
+| izquierda, izquierda, izquierda, B | SUPERSAYAYIN — ahora también **vuela** |
+| arriba, abajo, arriba, abajo | **FANTASMA** — atraviesa las paredes |
+
+El menú de pausa ahora dice `A: ELEGIR   B: SEGUIR`. Las tres filas
+funcionaban ya; lo que faltaba era decir con qué botón se elige, porque B y
+START salen al juego y quien confirmaba con esos veía "sólo funciona
+REANUDAR".
+
+| | |
+|---|---|
+| Tamaño | 128.220 bytes |
+| MD5 | `63bc6b8da2d88feeebd9bb30a50006bf` |
+
+El guardado no cambia: una partida de la rc5/rc6 sigue valiendo.
+
+---
+
 ## v1.0-rc6 — candidata a versión
 
 Cuatro cosas de presentación, comparando con la referencia:
