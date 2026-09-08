@@ -96,11 +96,50 @@
    extra del final es el fondo de paralaje, que no tiene TileId porque no
    forma parte del mundo colisionable. */
 #define TILEG_PARALLAX 10
+/* Tiles del fondo de paralaje (ver assets/src/tiles/tileset_tuneles.txt). */
+#define TILEG_PIPE_H     11
+#define TILEG_PIPE_JOINT 12
+#define TILEG_PIPE_V     13
+#define TILEG_SKYLINE    14
+#define TILEG_SKY_TOP    15
 
 
 /* Se activa junto con el mosaico de fondos, para que en la transición se
    pixele la escena entera y no sólo el decorado. */
 static uint16_t s_obj_mosaic = 0;
+
+/* ---------- El fondo de paralaje ----------
+   El prototipo dibuja DOS capas: la silueta de la ciudad a 0,3x de la
+   camara y el entramado de tuberias industriales a 0,55x. En Modo 0 hay
+   cuatro fondos y tres ya estan ocupados (nivel, interfaz y velo), asi
+   que las dos se funden en BG1 y se desplazan juntas a media velocidad.
+   Se pierde la separacion de profundidad; se gana el rasgo que de verdad
+   define la escena, que son las tuberias.
+
+   El patron se escribe UNA vez y despues lo mueve el scroll de hardware:
+   no cuesta nada por frame. Cierra en 32 tiles, que es el ancho del
+   screenblock, asi que da la vuelta sin costura. */
+static void build_parallax(void) {
+    for (int r = 0; r < MAP_TILES; r++) {
+        for (int c = 0; c < MAP_TILES; c++) {
+            uint16_t t = TILEG_PARALLAX;
+
+            /* Silueta de la ciudad al fondo: edificios de tres tiles de
+               ancho con alturas alternas, apoyados en la fila 17. */
+            int b = c / 3;
+            int top = 12 + ((b * 5) % 4);
+            if (r >= top && r < 18) t = (r == top) ? TILEG_SKY_TOP : TILEG_SKYLINE;
+
+            /* Las dos tuberias horizontales, con su junta remachada cada
+               seis tiles — de donde caen las gotas. */
+            if (r == 2 || r == 14) t = (c % 6 == 3) ? TILEG_PIPE_JOINT : TILEG_PIPE_H;
+            /* Los bajantes que las unen. */
+            else if (c % 10 == 4 && r > 2 && r < 14) t = TILEG_PIPE_V;
+
+            se_mem[BG1_SBB_INDEX][r * MAP_TILES + c] = SE_ID(t);
+        }
+    }
+}
 
 static void set_map_entry(int sbb, int world_tx, int world_ty, u16 tile_graphic) {
     se_mem[sbb][(world_ty & MAP_MASK) * MAP_TILES + (world_tx & MAP_MASK)] = SE_ID(tile_graphic);
@@ -188,10 +227,7 @@ void pal_video_init(void) {
 
     SBB_CLEAR(BG2_SBB_INDEX);
     SBB_CLEAR(BG1_SBB_INDEX);
-    /* BG1 es un único tile de relleno repetido: no necesita streaming. */
-    for (int i = 0; i < MAP_TILES * MAP_TILES; i++) {
-        se_mem[BG1_SBB_INDEX][i] = SE_ID(TILEG_PARALLAX);
-    }
+    build_parallax();
 
     /* BG_MOSAIC va puesto siempre: con REG_MOSAIC en 0 no hace nada, y
        así la transición sólo tiene que tocar un registro. */
@@ -490,9 +526,7 @@ void pal_video_cine_backdrop(CineBackdrop kind) {
             pal_bg_mem[0] = s_backdrop_saved;
             REG_BG1CNT = BG_CBB(BG_CBB_INDEX) | BG_SBB(BG1_SBB_INDEX) |
                          BG_4BPP | BG_REG_32x32 | BG_MOSAIC | BG_PRIO(2);
-            for (int i = 0; i < MAP_TILES * MAP_TILES; i++) {
-                se_mem[BG1_SBB_INDEX][i] = SE_ID(TILEG_PARALLAX);
-            }
+            build_parallax();
             REG_BG1HOFS = 0;
             REG_DISPCNT |= DCNT_BG2;
             break;
@@ -508,6 +542,29 @@ void pal_video_cine_pan(uint32_t frame) {
        colgando del borde de arriba. */
     REG_BG1VOFS = 0;
     REG_BG1HOFS = (s_cine_bg == CINE_BG_NIGHT) ? (uint16_t)((frame * 3) >> 4) : 0;
+}
+
+/* ---------- Goteo de humedad ----------
+   Los destellos cian que caen de las juntas de las tuberias. En el
+   prototipo son cuatro, con la cadencia desfasada y siguiendo el paralaje;
+   aca son cuatro sprites de un punto, que es lo que hay a mano y basta.
+
+   Van con el fondo y no con el mundo: su x se calcula con el mismo medio
+   scroll que BG1, para que parezcan colgar de las tuberias y no flotar
+   sueltos por delante. */
+#define DRIP_COUNT 4
+
+void pal_video_draw_drips(int cam_x, uint32_t frame) {
+    static const uint8_t DRIP_X[DRIP_COUNT] = { 26, 104, 182, 238 };
+    for (int i = 0; i < DRIP_COUNT; i++) {
+        uint32_t ph = (frame + (uint32_t)i * 37) % 110;
+        if (ph >= 60) continue;               /* la pausa entre gota y gota */
+        int x = ((int)DRIP_X[i] - (cam_x / 2)) % SCREEN_W;
+        if (x < 0) x += SCREEN_W;
+        int y = 24 + (int)((ph * 3) / 2);     /* cae a 1,5 px por frame */
+        obj_put(x, y, (uint16_t)(TB_PARTICLES + PCOL_CYAN),
+                ATTR0_SQUARE, ATTR1_SIZE_8x8, PALBANK_FX, false);
+    }
 }
 
 void pal_video_cine_begin(void) {
@@ -573,7 +630,12 @@ void pal_video_draw_world(const World *w, int cam_x, int cam_y) {
                 def->shape, def->size, def->palbank, e->face < 0);
     }
 
-    /* 3. Partículas: un objeto cada una, con un frame por color. */
+    /* 3. El goteo del fondo, antes que las partículas del juego: si OAM
+       se llena, lo que tiene que sobrevivir es lo que afecta a la
+       partida, no la decoración. */
+    pal_video_draw_drips(cam_x, w->tick);
+
+    /* 4. Partículas: un objeto cada una, con un frame por color. */
     for (int i = 0; i < particles_count(); i++) {
         const Particle *p = particles_get(i);
         if (!p->alive) continue;
@@ -582,11 +644,12 @@ void pal_video_draw_world(const World *w, int cam_x, int cam_y) {
                 ATTR0_SQUARE, ATTR1_SIZE_8x8, PALBANK_FX, false);
     }
 
-    /* 4. HUD de vida: en coordenadas de pantalla, sin cámara. */
-    for (int i = 0; i < w->player.hp; i++) {
-        obj_put(4 + i * 9, 4, (uint16_t)(TB_FX + FX_HEART),
-                ATTR0_SQUARE, ATTR1_SIZE_8x8, PALBANK_FX, false);
-    }
+    /* 5. HUD de vida: un solo corazón, de icono. La vida en sí es una
+       barra segmentada que dibuja la capa de interfaz (ui/hud.c) — con
+       seis puntos de vida, seis corazones sueltos ocupaban media pantalla
+       y costaba leer de un vistazo cuánta quedaba. */
+    obj_put(4, 4, (uint16_t)(TB_FX + FX_HEART),
+            ATTR0_SQUARE, ATTR1_SIZE_8x8, PALBANK_FX, false);
 
     /* Esconde las ranuras que no se usaron este frame. */
     for (int i = s_obj_next; i < 128; i++) obj_hide(&oam_mem[i]);

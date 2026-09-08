@@ -1,6 +1,6 @@
 # Presupuesto de memoria y de frame
 
-Medido sobre `build/perseo.gba` (126.940 bytes).
+Medido sobre `build/perseo.gba` (127.732 bytes).
 Los números de memoria salen del ELF enlazado (`arm-none-eabi-readelf -S`,
 `nm -S`) y del reparto de VRAM que fija el código; los de tiempo, del
 medidor de frame que lleva la propia ROM
@@ -14,7 +14,7 @@ Cómo repetir las mediciones: al final, en "Cómo se reproduce esto".
 
 | Recurso | Capacidad | Usado | Libre |
 |---|---:|---:|---:|
-| ROM (cartucho) | 32 MB | 126.940 B (0,4 %) | prácticamente todo |
+| ROM (cartucho) | 32 MB | 127.732 B (0,4 %) | prácticamente todo |
 | EWRAM | 262.144 B | **0 B** | 100 % |
 | IWRAM | 32.768 B | 15.956 B (49 %) | 16.812 B menos la pila |
 | VRAM de fondos | 65.536 B | 12.640 B (19 %) | 52.896 B |
@@ -32,11 +32,11 @@ optimizó (y por qué), y qué se dejó sin optimizar con el número delante.
 
 | Sección | Bytes | Qué es |
 |---|---:|---|
-| `.text` | 33.304 | código |
-| `.rodata` | 92.728 | datos constantes |
+| `.text` | 33.848 | código |
+| `.rodata` | 92.976 | datos constantes |
 | `.iwram` + `.data` (copias) | 328 | se copian a IWRAM al arrancar |
 | cabecera + relleno de `gbafix` | 580 | |
-| **total** | **126.940** | |
+| **total** | **127.732** | |
 
 Los datos pesan tres veces más que el código, y dentro de los datos mandan
 los siete tilemaps:
@@ -124,7 +124,7 @@ IWRAM, mover lo frío a EWRAM son 256 KB intactos esperando.
 
 | Zona | Bytes | Contenido |
 |---|---:|---|
-| CBB 0 | 352 | tileset del nivel: **11 tiles, los mismos para los siete** |
+| CBB 0 | 512 | tileset del nivel: **16 tiles, los mismos para los siete** (11 del mundo + los 5 del fondo de paralaje) |
 | CBB 2 | 4.096 | capa de interfaz: 3 tiles macizos + 96 glifos de 8×8 |
 | SBB 8 | 2.048 | tilemap de BG2 (el nivel colisionable) |
 | SBB 9 | 2.048 | tilemap de BG1 (paralaje) |

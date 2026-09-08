@@ -121,3 +121,56 @@ ssssssss
 sssssSSS
 sssssSSS
 ssssssss
+
+# 11 PIPE_H - tuberia horizontal del entramado industrial. Es el rasgo que
+# domina el fondo de la referencia: dos lineas de metal cruzando la pantalla.
+ssssssss
+tttttttt
+GGGGGGGG
+GGGGGGGG
+tttttttt
+ssssssss
+ssssssss
+ssssssss
+
+# 12 PIPE_H_JOINT - la junta remachada que aparece cada pocos tiles en la
+# tuberia horizontal, y de donde cuelgan las gotas.
+sstttsss
+tttttttt
+tGGGGGGt
+tttttttt
+tttttttt
+sstttsss
+ssssssss
+ssssssss
+
+# 13 PIPE_V - bajante vertical
+sstGGtss
+sstGGtss
+sstGGtss
+sstGGtss
+sstGGtss
+sstGGtss
+sstGGtss
+sstGGtss
+
+# 14 SKYLINE - bloque de silueta de la ciudad al fondo, mas oscuro que el
+# resto para que se lea como lejania.
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+
+# 15 SKYLINE_TOP - remate de un edificio, con su chimenea
+sssSSsss
+sssSSsss
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS
+SSSSSSSS

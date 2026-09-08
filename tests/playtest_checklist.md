@@ -43,6 +43,10 @@ no es lo mismo que haberlo escuchado.
 | `[x]` | "PARTIDA NUEVA" arranca la cinemática de introducción | auto |
 | `[x]` | Con partida guardada aparece "CONTINUAR" | auto (Fase 7) |
 | `[x]` | "CONTINUAR" carga y **se puede seguir jugando** | auto |
+| `[x]` | El fondo se desplaza con la cámara (tuberías y ciudad) | auto |
+| `[x]` | Caen gotas de humedad de las juntas | auto |
+| `[x]` | La vida se lee como corazón + barra | auto |
+| `[x]` | El menú de pausa: reanudar, inventario, salir al menú | auto |
 | `[x]` | OPCIONES abre su pantalla | auto |
 | `[x]` | Reasignar un botón **intercambia** con quien lo tenía | auto |
 | `[x]` | Los controles reasignados sobreviven a apagar la consola | auto |

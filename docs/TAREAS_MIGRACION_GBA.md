@@ -462,6 +462,54 @@ al recargar, que es lo normal en el género y lo que hacía el prototipo.
 
 ---
 
+## El fondo, la vida y el menú de pausa
+
+Tres cosas que se vieron comparando con la referencia:
+
+**1. El fondo no era un fondo.** BG1 existía y se desplazaba a media
+velocidad de la cámara desde la Fase 2, pero su contenido era **un solo tile
+repetido**: había paralaje sin nada que ver moverse. El propio código lo
+tenía anotado como pendiente. Ahora lleva el entramado industrial de la
+referencia — dos tuberías horizontales con sus juntas remachadas, bajantes
+verticales, y la silueta de la ciudad detrás.
+
+*El prototipo usa DOS capas* (la ciudad a 0,3x y las tuberías a 0,55x). En
+Modo 0 hay cuatro fondos y tres ya estaban ocupados — nivel, interfaz y velo
+— así que las dos se funden en BG1 y se desplazan juntas. Se pierde la
+separación de profundidad; se gana el rasgo que de verdad define la escena.
+El patrón se escribe **una vez** al arrancar y de ahí en más lo mueve el
+scroll de hardware: no cuesta nada por frame.
+
+**2. El goteo de humedad.** Cuatro destellos cian que caen de las juntas, con
+la cadencia desfasada del original y siguiendo el mismo medio scroll que las
+tuberías, para que parezcan colgar de ellas y no flotar sueltos. Son sprites,
+y se piden **antes** que las partículas del juego: si OAM se llenara, lo que
+tiene que sobrevivir es lo que afecta a la partida, no la decoración. Hizo
+falta un color de partícula nuevo, el cian.
+
+**3. La vida: un corazón y una barra.** Antes era una fila de corazones — uno
+por punto de vida — y con seis ocupaban media pantalla sin dejar leer de un
+vistazo cuánta quedaba. Ahora el corazón es un icono y la vida se lee en una
+barra segmentada, como en la referencia.
+
+**4. El menú de pausa tenía una sola salida.** Mostraba "PAUSA" y las chapas,
+y se salía con START. Ahora tiene REANUDAR / INVENTARIO / SALIR AL MENU.
+START y B siguen saliendo directo, que es lo que espera cualquiera que haya
+pausado sin querer. "SALIR AL MENU" no toca la SRAM: lo guardado sigue ahí
+para CONTINUAR.
+
+**Y un fallo que apareció al abrir el inventario desde la pausa**, que llevaba
+ahí desde la Fase 7 sin que nadie lo mirara: "LANZAMIENTO DE TRAZA" son
+veinte tiles y se comía la etiqueta "PASIVA" de al lado. Se corrió el nombre
+dos columnas a la izquierda y la etiqueta tres a la derecha, y entran los dos.
+
+**Verificado en emulador:** el fondo desplázandose con la cámara, las gotas
+cayendo, la barra de vida, el menú de pausa con sus tres filas, el inventario
+abierto desde la pausa y sin solapes, y las viñetas de la cinemática — que
+esconden el fondo del nivel — sin restos de tuberías. Sin frames caídos.
+
+---
+
 ## OPCIONES: controles, poderes y claves
 
 Pedido: una entrada más en el menú principal donde se puedan cambiar los

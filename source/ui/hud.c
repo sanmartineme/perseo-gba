@@ -70,10 +70,25 @@ static void draw_sign(const Game *g) {
     ui_text_wrapped(g->world.sign_text, 3, UI_ROWS - 5, UI_COLS - 6, UI_WHITE);
 }
 
+/* La barra de vida: un segmento por punto, al lado del corazón que
+   dibuja la capa de sprites. El prototipo la pinta con marco oscuro y un
+   brillo arriba; acá la rejilla es de 8 px y el marco se resuelve con una
+   fila de relleno oscuro debajo de los segmentos llenos, que a este
+   tamaño se lee igual. */
+static void draw_health(const Game *g) {
+    const Player *p = &g->world.player;
+    int max = p->max_hp;
+    if (max < 1) max = 1;
+    if (max > 12) max = 12;          /* lo que cabe sin pisar las etiquetas */
+    int hp = p->hp < 0 ? 0 : (p->hp > max ? max : p->hp);
+    ui_text_bar(2, 0, max, hp, UI_RED);
+}
+
 void ui_hud_draw(const Game *g) {
-    /* Chapas. Van en la fila 2 y no en la 1: los corazones son sprites
-       de 8 px dibujados en y=4, así que pisan las dos primeras filas de
-       tiles. */
+    draw_health(g);
+
+    /* Chapas. Van en la fila 2 y no en la 1: el corazón es un sprite de
+       8 px dibujado en y=4, así que pisa las dos primeras filas. */
     ui_text_put(1, 2, UI_YELLOW, "x");
     ui_text_put(2, 2, UI_YELLOW, ui_itoa(g->world.chapas));
 

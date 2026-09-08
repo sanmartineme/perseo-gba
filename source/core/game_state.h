@@ -151,6 +151,7 @@ typedef struct Game {
 
     /* --- opciones --- */
     int8_t  opt_sel;          /* fila elegida en la pantalla de OPCIONES */
+    int8_t  pause_sel;        /* fila elegida en el menú de pausa */
     bool    opt_all_powers;   /* dar las tres habilidades desde el principio */
     bool    opt_cheats;       /* escuchar las claves */
 
@@ -170,6 +171,14 @@ bool game_has_save(void);
 
 /* Filas de la pantalla de OPCIONES. Las cuatro primeras son las acciones
    reasignables, en el mismo orden que InputAction. */
+/* Filas del menú de pausa. */
+typedef enum PauseRow {
+    PAUSE_RESUME = 0,
+    PAUSE_INVENTORY,
+    PAUSE_QUIT,
+    PAUSE_ROW_COUNT
+} PauseRow;
+
 typedef enum OptionRow {
     OPT_JUMP = 0, OPT_ATTACK, OPT_DASH, OPT_THROW,
     OPT_POWERS,

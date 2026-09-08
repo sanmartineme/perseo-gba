@@ -112,11 +112,28 @@ static void draw_banner(const Game *g) {
     if (g->banner_desc) ui_text_wrapped(g->banner_desc, 3, 15, UI_COLS - 6, UI_WHITE);
 }
 
+static const char *const PAUSE_LABELS[PAUSE_ROW_COUNT] = {
+    "REANUDAR", "INVENTARIO", "SALIR AL MENU"
+};
+
 static void draw_pause(const Game *g) {
-    ui_text_panel(7, 6, 16, 7, UI_FILL_DARK, true);
-    ui_text_center(8, UI_YELLOW, "PAUSA");
-    ui_text_center(10, UI_WHITE, "CHAPAS");
-    ui_text_center(11, UI_YELLOW, ui_itoa(g->world.chapas));
+    ui_text_panel(6, 4, 18, 12, UI_FILL_DARK, true);
+    ui_text_center(5, UI_YELLOW, "PAUSA");
+
+    for (int i = 0; i < PAUSE_ROW_COUNT; i++) {
+        int row = 8 + i * 2;
+        bool sel = (i == g->pause_sel);
+        int w = ui_text_width(PAUSE_LABELS[i]);
+        int col = (UI_COLS - w) / 2;
+        ui_text_put(col, row, sel ? UI_YELLOW : UI_WHITE, PAUSE_LABELS[i]);
+        if (sel && ((g->frame >> 4) & 1)) {
+            ui_text_put(col - 2, row, UI_YELLOW, ">");
+            ui_text_put(col + w + 1, row, UI_YELLOW, "<");
+        }
+    }
+
+    ui_text_put(8, 14, UI_GREY, "CHAPAS");
+    ui_text_put(15, 14, UI_YELLOW, ui_itoa(g->world.chapas));
 }
 
 static void draw_dead(const Game *g) {
@@ -175,10 +192,14 @@ static void draw_inventory(const Game *g) {
         for (int i = 0; i < 5; i++) {
             bool has = has_ability_row(p, i);
             bool sel = (i == g->inv_sel);
-            if (sel) ui_text_put(3, 6 + i, UI_YELLOW, ">");
-            ui_text_put(5, 6 + i, has ? (sel ? UI_WHITE : UI_CYAN) : UI_GREY, AB_ROWS[i]);
-            if (i < 2) ui_text_put(UI_COLS - 9, 6 + i, UI_YELLOW, "PASIVA");
-            else       ui_text_put(UI_COLS - 9, 6 + i, has ? UI_GREEN : UI_GREY,
+            /* El nombre arranca en la 3 y la etiqueta en la 24: con el
+               reparto anterior, "LANZAMIENTO DE TRAZA" son veinte tiles
+               que llegaban hasta la 24 y se comian el "PASIVA" de al
+               lado. Asi caben los dos sin tocarse. */
+            if (sel) ui_text_put(1, 6 + i, UI_YELLOW, ">");
+            ui_text_put(3, 6 + i, has ? (sel ? UI_WHITE : UI_CYAN) : UI_GREY, AB_ROWS[i]);
+            if (i < 2) ui_text_put(UI_COLS - 6, 6 + i, UI_YELLOW, "PASIVA");
+            else       ui_text_put(UI_COLS - 6, 6 + i, has ? UI_GREEN : UI_GREY,
                                    has ? "SI" : "NO");
         }
         desc = has_ability_row(p, g->inv_sel) ? AB_DESCS[g->inv_sel] : AB_NOT_FOUND;
@@ -187,8 +208,8 @@ static void draw_inventory(const Game *g) {
             bool found = (p->relics_found & RELIC_BIT(i)) != 0;
             bool eq = (p->relics_equipped & RELIC_BIT(i)) != 0;
             bool sel = (i == g->inv_sel);
-            if (sel) ui_text_put(3, 6 + i, UI_YELLOW, ">");
-            ui_text_put(5, 6 + i, found ? (sel ? UI_WHITE : UI_CYAN) : UI_GREY,
+            if (sel) ui_text_put(1, 6 + i, UI_YELLOW, ">");
+            ui_text_put(3, 6 + i, found ? (sel ? UI_WHITE : UI_CYAN) : UI_GREY,
                         found ? RELICS[i].name : "- - - - -");
             /* "EQ" y no "PUESTA": los nombres largos ("PATA DE LA
                SUERTE") llegan hasta la columna 22 y se pisaban. */

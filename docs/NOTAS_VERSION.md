@@ -1,5 +1,29 @@
 # Notas de versión
 
+## v1.0-rc6 — candidata a versión
+
+Cuatro cosas de presentación, comparando con la referencia:
+
+- **El fondo ahora es un fondo.** El paralaje existía desde la Fase 2 pero su
+  contenido era un tile repetido. Ahora lleva el entramado de tuberías con
+  sus juntas, los bajantes y la silueta de la ciudad, y se desplaza con la
+  cámara.
+- **Goteo de humedad**: cuatro destellos cian cayendo de las juntas.
+- **La vida es un corazón y una barra**, en vez de una fila de corazones.
+- **El menú de pausa** tiene REANUDAR / INVENTARIO / SALIR AL MENU.
+
+Y de paso, un solape de texto en el inventario que llevaba ahí desde la
+Fase 7: "LANZAMIENTO DE TRAZA" se comía la etiqueta de al lado.
+
+| | |
+|---|---|
+| Tamaño | 127.732 bytes |
+| MD5 | `9badc14a0507e461a737db6022687cff` |
+
+El guardado no cambia: una partida de la rc5 sigue valiendo.
+
+---
+
 ## v1.0-rc5 — candidata a versión
 
 **OPCIONES en el menú principal**: reasignar los cuatro botones de acción,

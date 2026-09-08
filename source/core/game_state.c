@@ -359,6 +359,44 @@ static void update_options(Game *g, const GameInput *in) {
     }
 }
 
+/* El menú de pausa. START y B siguen saliendo directo, que es lo que
+   espera cualquiera que haya pausado sin querer; las tres filas son para
+   lo que hay que elegir. */
+static void update_pause(Game *g, const GameInput *in) {
+    if (in->start_pressed || in->cancel_pressed) {
+        audio_play_sfx(SFX_CHECK);
+        enter(g, GS_PLAY);
+        return;
+    }
+    if (in->down_pressed) {
+        g->pause_sel = (int8_t)((g->pause_sel + 1) % PAUSE_ROW_COUNT);
+        audio_play_sfx(SFX_CHECK);
+    }
+    if (in->up_pressed) {
+        g->pause_sel = (int8_t)((g->pause_sel + PAUSE_ROW_COUNT - 1) % PAUSE_ROW_COUNT);
+        audio_play_sfx(SFX_CHECK);
+    }
+    if (!in->confirm_pressed) return;
+
+    switch (g->pause_sel) {
+        case PAUSE_RESUME:
+            audio_play_sfx(SFX_CHECK);
+            enter(g, GS_PLAY);
+            break;
+        case PAUSE_INVENTORY:
+            audio_play_sfx(SFX_CHECK);
+            enter(g, GS_INVENTORY);
+            break;
+        case PAUSE_QUIT:
+            /* Al título, con la partida limpia. Lo guardado en la SRAM no
+               se toca: sigue ahí para CONTINUAR. */
+            audio_play_sfx(SFX_CHECK);
+            game_init(g);
+            break;
+        default: break;
+    }
+}
+
 static void update_title(Game *g, const GameInput *in) {
     /* Con partida guardada el menú tiene una opción más, CONTINUAR, y
        es la primera: si volviste al juego, es lo que querías hacer. */
@@ -526,7 +564,11 @@ static void update_play(Game *g, const GameInput *in) {
         return;
     }
     if (in->debug_held) return;
-    if (in->start_pressed) { audio_play_sfx(SFX_CHECK); enter(g, GS_PAUSE); }
+    if (in->start_pressed) {
+        audio_play_sfx(SFX_CHECK);
+        g->pause_sel = PAUSE_RESUME;
+        enter(g, GS_PAUSE);
+    }
     else if (in->select_pressed) { audio_play_sfx(SFX_CHECK); enter(g, GS_INVENTORY); }
 }
 
@@ -669,7 +711,7 @@ void game_update(Game *g, const GameInput *in) {
             break;
 
         case GS_PAUSE:
-            if (in->start_pressed || in->cancel_pressed) enter(g, GS_PLAY);
+            update_pause(g, in);
             break;
 
         case GS_INVENTORY:

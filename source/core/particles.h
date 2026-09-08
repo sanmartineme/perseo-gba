@@ -29,6 +29,7 @@ typedef enum ParticleColor {
     PCOL_WHITE,      /* 'W' — impacto de garra */
     PCOL_BROWN,      /* 'o' — traza */
     PCOL_GREY,       /* 'G'/'N' — polvo, chatarra */
+    PCOL_CYAN,       /* 'C' — el goteo de humedad del fondo */
     PCOL_COUNT
 } ParticleColor;
 
