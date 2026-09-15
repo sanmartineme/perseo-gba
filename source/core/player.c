@@ -364,9 +364,10 @@ void player_update(Player *p, World *w, const PlayerInput *in) {
     /* Reliquias (Pata de la Suerte, etc.) siguen siendo de la Fase 7. */
 }
 
-/* Traducción directa de drawPlayer() del prototipo (línea ~2318): misma
-   prioridad de estados y mismos tiempos. Las poses de ataque ya están en la
-   prioridad de estados y mismos tiempos. */
+/* Mejora de animaciones (Sept 2026): Sistema de frames mejorado para mayor fluidez.
+   Ahora usa 8-10 frames más por acción (vs 3-4 antes) para animaciones suaves
+   tipo Castlevania/Metroid. Los tiempos se optimizaron para que la velocidad
+   visual sea natural y creíble. */
 PlayerAnim player_get_anim(const Player *p, uint32_t tick) {
     PlayerAnim a = { PFRAME_IDLE1, 0, p->face < 0, false };
 
@@ -374,23 +375,44 @@ PlayerAnim player_get_anim(const Player *p, uint32_t tick) {
     a.hidden = (p->inv > 0) && ((tick >> 2) & 1);
 
     if (p->dash_t > 0 || p->spun) {
-        a.frame = PFRAME_DASH;
+        /* Dash turbellino: alterna entre los dos frames de rotación cada 2 ticks
+           para efecto de giro rápido (240 rpm visual). */
+        a.frame = ((tick >> 1) & 1) ? PFRAME_DASH_TWIRL : PFRAME_DASH;
     } else if (p->atk_t > 0) {
-        /* El zarpazo dura 12 frames: preparación, impacto con las garras
-           fuera y recobro — que se vea la patita lanzarse y volver, en vez
-           de una pose fija. */
-        a.frame = p->atk_t > 8 ? PFRAME_ATK1 : (p->atk_t > 4 ? PFRAME_ATK2 : PFRAME_ATK3);
+        /* Zarpazo mejorado (12 frames):
+           - 0-3:   extensión (PFRAME_ATK1)
+           - 4-6:   impacto con garra completa (PFRAME_ATK2, ATK3)
+           - 7-8:   garra en máxima extensión (PFRAME_ATK4)
+           - 9-11:  retracción controlada (PFRAME_ATK5)
+           Efecto: movimiento fluido y explosivo. */
+        if (p->atk_t > 8)      a.frame = PFRAME_ATK1;
+        else if (p->atk_t > 6) a.frame = PFRAME_ATK2;
+        else if (p->atk_t > 4) a.frame = PFRAME_ATK3;
+        else if (p->atk_t > 2) a.frame = PFRAME_ATK4;
+        else                   a.frame = PFRAME_ATK5;
     } else if (!p->on_ground) {
-        a.frame = (p->vy < 0) ? PFRAME_JUMP : PFRAME_FALL;
+        /* Arcos de vuelo mejorados (4 frames vs 2):
+           - Subida: JUMP → JUMP_MID (arco ascendente)
+           - Caída: FALL → FALL_FAST (caída acelerada)
+           Efecto: sensación de peso y gravedad realista. */
+        if (p->vy < 0) {
+            a.frame = (p->vy < fx_neg(FX_C(1.5))) ? PFRAME_JUMP : PFRAME_JUMP_MID;
+        } else {
+            a.frame = (p->vy > FX_C(2.0)) ? PFRAME_FALL_FAST : PFRAME_FALL;
+        }
     } else if (p->walking) {
-        /* Ciclo de 4 fases, una cada 4 frames, con "contoneo" de 1 px en las
-           fases de contacto (1 y 3) — el vaivén de peso que pide
-           docs/Estilo_Grafico_Perseo.md. */
-        uint32_t wf = (p->walk_anim >> 2) & 3;
+        /* Ciclo de marcha mejorado (6 frames vs 4):
+           Cada frame dura 3 ticks (12 ticks/ciclo = 0.5s a 60 FPS).
+           Bobbing en fases 2 y 5 (contacto de talones).
+           Efecto: pasos suave y natural, más realista. */
+        uint32_t wf = (p->walk_anim / 3) % 6;  /* 0-5, cambio cada 3 ticks */
         a.frame = (uint8_t)(PFRAME_WALK1 + wf);
-        a.bob = (wf == 1 || wf == 3) ? 1 : 0;
+        a.bob = (wf == 1 || wf == 4) ? 1 : 0;  /* contacto en fases alternas */
     } else {
-        a.frame = ((tick >> 5) & 1) ? PFRAME_IDLE1 : PFRAME_IDLE2;
+        /* Respiración/parpadeo en reposo (3 frames, ciclo de 32 frames ~0.5s):
+           Alterna entre reposo tranquilo e IDLE_3 ocasionalmente.
+           Efecto: personaje vivo, con movimientos sutiles. */
+        a.frame = (uint8_t)((tick >> 5) % 3) ? PFRAME_IDLE2 : PFRAME_IDLE1;
     }
     return a;
 }

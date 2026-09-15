@@ -1,8 +1,8 @@
 # Decorado de las vinetas, 16x16: la luna. Meta-tile de 2x2.
 -gt
--gB4
+-gB8
 -Mw2
 -Mh2
--pn16
+-pn256
 -ftc
 -fh

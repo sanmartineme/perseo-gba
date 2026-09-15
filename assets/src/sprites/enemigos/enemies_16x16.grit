@@ -1,9 +1,10 @@
 # Enemigos grandes (maton y sicario): meta-tile de 2x2 = frames de 16x16.
 # grit lee este archivo automaticamente al convertir el .png.
+# Cambiado a 8bpp (256 colores) para mayor definición y detalle visual
 -gt
--gB4
+-gB8
 -Mw2
 -Mh2
--pn16
+-pn256
 -ftc
 -fh

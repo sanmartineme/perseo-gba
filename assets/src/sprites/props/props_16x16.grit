@@ -1,9 +1,9 @@
 # Santuario: meta-tile de 2x2 = frames de 16x16.
 # grit lee este archivo automaticamente al convertir el .png.
 -gt
--gB4
+-gB8
 -Mw2
 -Mh2
--pn16
+-pn256
 -ftc
 -fh

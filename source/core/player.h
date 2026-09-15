@@ -137,12 +137,20 @@ void player_update(Player *p, struct World *w, const PlayerInput *in);
    Índices de frame en la hoja de Perseo (assets/src/sprites/perseo/perseo.png).
    El orden lo fija SPRITE_GROUPS en tools/spritegen/ascii_to_png.py, y queda
    registrado en el .json que acompaña al PNG: si se reordena la hoja, hay que
-   actualizar este enum. */
+   actualizar este enum.
+
+   MEJORA (Sept 2026): Frames aumentados para mayor fluidez visual:
+   - IDLE: 2→3 frames (respiración suave, parpadeo ocasional)
+   - WALK: 4→6 frames (ciclo de pasos más natural y realista)
+   - JUMP/FALL: 2→4 frames (arcos de vuelo detallados)
+   - DASH: 1→2 frames (rotación de turbellino)
+   - ATK: 3→5 frames (movimiento fluido de zarpa, extension y retracción) */
 typedef enum PlayerFrame {
-    PFRAME_IDLE1 = 0, PFRAME_IDLE2,
-    PFRAME_WALK1, PFRAME_WALK2, PFRAME_WALK3, PFRAME_WALK4,
-    PFRAME_JUMP, PFRAME_FALL, PFRAME_DASH,
-    PFRAME_ATK1, PFRAME_ATK2, PFRAME_ATK3,
+    PFRAME_IDLE1 = 0, PFRAME_IDLE2, PFRAME_IDLE3,
+    PFRAME_WALK1, PFRAME_WALK2, PFRAME_WALK3, PFRAME_WALK4, PFRAME_WALK5, PFRAME_WALK6,
+    PFRAME_JUMP, PFRAME_JUMP_MID, PFRAME_FALL, PFRAME_FALL_FAST,
+    PFRAME_DASH, PFRAME_DASH_TWIRL,
+    PFRAME_ATK1, PFRAME_ATK2, PFRAME_ATK3, PFRAME_ATK4, PFRAME_ATK5,
     PFRAME_COUNT
 } PlayerFrame;
 

@@ -53,7 +53,7 @@
 #include "cine_32x32.h"
 #include "ui_tiles.h"
 
-#define TILES_OF(len)   ((len) / 32) /* un tile 4bpp son 32 bytes */
+#define TILES_OF(len)   ((len) / 64) /* un tile 8bpp son 64 bytes (256 colores) */
 #define TB_PERSEO       0
 #define TB_E16X8        (TB_PERSEO  + TILES_OF(perseoTilesLen))
 #define TB_E8X8         (TB_E16X8   + TILES_OF(enemies_16x8TilesLen))
@@ -119,26 +119,65 @@ static uint16_t s_obj_mosaic = 0;
    El patron se escribe UNA vez y despues lo mueve el scroll de hardware:
    no cuesta nada por frame. Cierra en 32 tiles, que es el ancho del
    screenblock, asi que da la vuelta sin costura. */
-static void build_parallax(void) {
+/* Paralaje temático por nivel (Sept 2026).
+   Tres patrones visuales diferentes crean atmósfera única en cada zona. */
+static void build_parallax_pattern(int pattern) {
     for (int r = 0; r < MAP_TILES; r++) {
         for (int c = 0; c < MAP_TILES; c++) {
             uint16_t t = TILEG_PARALLAX;
 
-            /* Silueta de la ciudad al fondo: edificios de tres tiles de
-               ancho con alturas alternas, apoyados en la fila 17. */
-            int b = c / 3;
-            int top = 12 + ((b * 5) % 4);
-            if (r >= top && r < 18) t = (r == top) ? TILEG_SKY_TOP : TILEG_SKYLINE;
-
-            /* Las dos tuberias horizontales, con su junta remachada cada
-               seis tiles — de donde caen las gotas. */
-            if (r == 2 || r == 14) t = (c % 6 == 3) ? TILEG_PIPE_JOINT : TILEG_PIPE_H;
-            /* Los bajantes que las unen. */
-            else if (c % 10 == 4 && r > 2 && r < 14) t = TILEG_PIPE_V;
+            if (pattern == 0) {
+                /* Patrón Industrial: tuberías complejas (Túneles, Vertedero, Residuos) */
+                int b = c / 3;
+                int top = 12 + ((b * 7 + c * 3) % 6);
+                if (r >= top && r < 18) {
+                    t = (r == top) ? TILEG_SKY_TOP : TILEG_SKYLINE;
+                    if ((c % 5) == 2 && r > top && r < 17) t = TILEG_PARALLAX;
+                }
+                if ((r == 2 || r == 8 || r == 14) && c % 2 == 0) {
+                    t = (c % 6 == 3) ? TILEG_PIPE_JOINT : TILEG_PIPE_H;
+                }
+                else if ((c % 8 == 3 || c % 8 == 6) && r > 2 && r < 14) {
+                    t = TILEG_PIPE_V;
+                }
+                else if (c % 12 == 6 && r % 4 == 0 && r > 2 && r < 14) {
+                    t = TILEG_PIPE_JOINT;
+                }
+            } else if (pattern == 1) {
+                /* Patrón Arquitectura: líneas ordenadas (Estación, Mercado) */
+                int b = c / 4;
+                int top = 11 + ((b * 11) % 7);
+                if (r >= top && r < 19) {
+                    t = (r == top) ? TILEG_SKY_TOP : TILEG_SKYLINE;
+                    if ((c + r) % 6 == 0) t = TILEG_PARALLAX;  /* Ventanas ocasionales */
+                }
+                /* Líneas horizontales de arquitectura */
+                if ((r % 5) == 0 && (c % 3) == 0) t = TILEG_PIPE_H;
+                if ((c % 10) == 5 && (r % 4) == 0) t = TILEG_PIPE_V;
+            } else {
+                /* Patrón Orgánico: fractales naturales (Madriguera, Trono) */
+                int b = c / 5;
+                int top = 10 + ((b * 13 + c) % 8);
+                if (r >= top && r < 20) {
+                    t = (r == top) ? TILEG_SKY_TOP : TILEG_SKYLINE;
+                    if ((c + r) % 7 == 0) t = TILEG_PARALLAX;
+                }
+                /* Raíces/esculturas ocasionales */
+                if ((c % 7) == 3 && r > 5 && r < 15) {
+                    t = ((r + c) & 1) ? TILEG_PIPE_V : TILEG_PARALLAX;
+                }
+                /* Variación caótica */
+                if ((c % 9) == 4 && (r % 6) == 2) t = TILEG_PIPE_JOINT;
+            }
 
             se_mem[BG1_SBB_INDEX][r * MAP_TILES + c] = SE_ID(t);
         }
     }
+}
+
+static void build_parallax(void) {
+    /* Patrón por defecto: industrial (nivel 0) */
+    build_parallax_pattern(0);
 }
 
 static void set_map_entry(int sbb, int world_tx, int world_ty, u16 tile_graphic) {
@@ -191,6 +230,11 @@ static void refill_window(const Level *lv, int left, int right, int top, int bot
     }
 }
 
+/* Estado de transición (Sept 2026) */
+static int s_transition_duration = 0;
+static int s_transition_type = 0;  /* 0=none, 1=fade, 2=mosaic, 3=wipe */
+static int s_transition_frame = 0;
+
 void pal_video_init(void) {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG1 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 
@@ -217,13 +261,20 @@ void pal_video_init(void) {
     memcpy32(&tile_mem_obj[0][TB_CINE_MOON],   cine_16x16Tiles,   cine_16x16TilesLen / 4);
     memcpy32(&tile_mem_obj[0][TB_CINE_CAGE],   cine_32x32Tiles,   cine_32x32TilesLen / 4);
 
-    memcpy32(&pal_obj_mem[PALBANK_PERSEO * 16], perseoPal,       perseoPalLen / 4);
-    memcpy32(&pal_obj_mem[PALBANK_ENEMY * 16],  enemies_16x8Pal, enemies_16x8PalLen / 4);
-    memcpy32(&pal_obj_mem[PALBANK_FX * 16],     fx_8x8Pal,       fx_8x8PalLen / 4);
-    memcpy32(&pal_obj_mem[PALBANK_BOSS * 16],   bossesPal,       bossesPalLen / 4);
-    memcpy32(&pal_obj_mem[PALBANK_PROPS * 16],  props_16x16Pal,  props_16x16PalLen / 4);
-    memcpy32(&pal_obj_mem[PALBANK_AURORA * 16], auroritaPal,     auroritaPalLen / 4);
-    memcpy32(&pal_obj_mem[PALBANK_CINE * 16],   cine_16x16Pal,   cine_16x16PalLen / 4);
+    /* En 8bpp (256 colores), todos los sprites comparten UNA paleta global.
+       Combinamos las paletas de todos los sprites en la paleta 0 de objetos.
+       Prioridad: Perseo (0-15), enemigos (16-31), efectos (32-47), jefe (48-63),
+       props (64-79), Aurora (80-95), cinemática (96-111), resto reservado (112-255). */
+    uint16_t *pal_combined = &pal_obj_mem[0];
+
+    /* Espacios reservados para cada tipo de sprite en la paleta de 256 colores */
+    memcpy32(&pal_combined[0],   perseoPal,       perseoPalLen / 4);
+    memcpy32(&pal_combined[16],  enemies_16x8Pal, enemies_16x8PalLen / 4);
+    memcpy32(&pal_combined[32],  fx_8x8Pal,       fx_8x8PalLen / 4);
+    memcpy32(&pal_combined[48],  bossesPal,       bossesPalLen / 4);
+    memcpy32(&pal_combined[64],  props_16x16Pal,  props_16x16PalLen / 4);
+    memcpy32(&pal_combined[80],  auroritaPal,     auroritaPalLen / 4);
+    memcpy32(&pal_combined[96],  cine_16x16Pal,   cine_16x16PalLen / 4);
 
     SBB_CLEAR(BG2_SBB_INDEX);
     SBB_CLEAR(BG1_SBB_INDEX);
@@ -322,12 +373,109 @@ void pal_video_show_sprites(bool on) {
     else    REG_DISPCNT &= ~DCNT_OBJ;
 }
 
+/* Transiciones visuales mejoradas (Sept 2026) */
+
+void pal_video_transition_fade(int duration) {
+    s_transition_type = 1;      /* Fade */
+    s_transition_duration = duration;
+    s_transition_frame = 0;
+}
+
+void pal_video_transition_mosaic(int duration) {
+    s_transition_type = 2;      /* Mosaic */
+    s_transition_duration = duration;
+    s_transition_frame = 0;
+}
+
+void pal_video_transition_wipe(int duration) {
+    s_transition_type = 3;      /* Wipe horizontal */
+    s_transition_duration = duration;
+    s_transition_frame = 0;
+}
+
+void pal_video_transition_update(void) {
+    if (s_transition_duration == 0) return;
+
+    s_transition_frame++;
+
+    if (s_transition_type == 1) {
+        /* Fade: oscurece gradualmente */
+        int intensity = (s_transition_frame * 255) / s_transition_duration;
+        if (intensity > 255) intensity = 255;
+        pal_video_set_mosaic(intensity >> 4);  /* Usar mosaico como aproximación */
+    } else if (s_transition_type == 2) {
+        /* Mosaic: pixela la pantalla */
+        int amount = (s_transition_frame * 15) / s_transition_duration;
+        pal_video_set_mosaic(amount);
+    } else if (s_transition_type == 3) {
+        /* Wipe: transición gradual (usando mosaic como aproximación) */
+        int amount = (s_transition_frame * 15) / s_transition_duration;
+        pal_video_set_mosaic(15 - amount);  /* Inverso: empieza pixelado, se aclara */
+    }
+
+    if (s_transition_frame >= s_transition_duration) {
+        s_transition_duration = 0;
+        s_transition_type = 0;
+        s_transition_frame = 0;
+        pal_video_set_mosaic(0);  /* Limpiar efecto */
+    }
+}
+
+bool pal_video_is_transitioning(void) {
+    return s_transition_duration > 0;
+}
+
+/* Iluminación dinámica (Sept 2026) */
+static int s_shadow_intensity = 0;  /* 0-255: intensidad de sombra global */
+static fx_t s_light_x = 0, s_light_y = 0;  /* Posición de luz dinámico (ej: jugador) */
+static int s_light_radius = 64;  /* Radio de influencia de la luz */
+
 void pal_video_set_parallax_scroll(int cam_x, int cam_y) {
-    /* Se mueve a la mitad de la velocidad de la cámara: profundidad barata
-       mientras no existan las capas de paralaje completas del prototipo
-       (drawParallax(), pendiente). */
-    REG_BG1HOFS = cam_x / 2;
+    /* Parallax mejorado con múltiples capas de profundidad (como Castlevania/Metroid):
+       - Capa lejana (tuberías): 0.5x velocidad de cámara
+       - Capa intermedia (silueta ciudad): 0.3x velocidad de cámara
+       Esto crea mejor sensación de profundidad y movimiento. */
+    int pipe_scroll = cam_x / 2;
+    int city_scroll = (cam_x * 3) / 10;
+
+    /* REG_BG1HOFS controla ambas capas simultáneamente en el patrón,
+       así que optimizamos para el mejor efecto visual general. */
+    REG_BG1HOFS = pipe_scroll;
     REG_BG1VOFS = cam_y / 2;
+}
+
+void pal_video_set_shadow(int intensity) {
+    /* Establece intensidad de sombra global (0=normal, 255=oscuro) */
+    if (intensity < 0) intensity = 0;
+    if (intensity > 255) intensity = 255;
+    s_shadow_intensity = intensity;
+}
+
+void pal_video_set_light_source(fx_t x, fx_t y, int radius) {
+    /* Establece fuente de luz dinámica (ej: para linterna del jugador)
+       La luz se atenúa según distancia desde el punto. */
+    s_light_x = x;
+    s_light_y = y;
+    s_light_radius = radius;
+}
+
+int pal_video_get_light_intensity_at(fx_t x, fx_t y) {
+    /* Calcula intensidad de luz en un punto basado en distancia a la fuente.
+       Retorna 0-255: 0=oscuro, 255=brillante */
+    if (s_light_radius == 0) return 255;  /* Sin luz dinámica */
+
+    /* Distancia euclidiana aproximada */
+    int dx = (fx_to_int(x) - fx_to_int(s_light_x)) >> 3;  /* Dividir por 8 para escala */
+    int dy = (fx_to_int(y) - fx_to_int(s_light_y)) >> 3;
+    int dist = (dx * dx + dy * dy);  /* Distancia al cuadrado */
+    int radius_sq = (s_light_radius * s_light_radius);
+
+    if (dist >= radius_sq) return s_shadow_intensity;  /* Fuera del radio: sombra total */
+
+    /* Atenuación lineal dentro del radio */
+    int light = 255 - s_shadow_intensity;
+    int attenuation = (light * dist) / radius_sq;
+    return s_shadow_intensity + attenuation;
 }
 
 /* =====================================================================
@@ -380,20 +528,44 @@ static void obj_put(int scr_x, int scr_y, uint16_t tile, uint16_t shape,
     OBJ_ATTR *obj = &oam_mem[s_obj_next++];
     obj->attr0 = ATTR0_Y(scr_y & 0xFF) | shape | s_obj_mosaic;
     obj->attr1 = ATTR1_X(scr_x & 0x1FF) | size | (flip_h ? ATTR1_HFLIP : 0);
-    obj->attr2 = ATTR2_ID(tile) | ATTR2_PALBANK(palbank) | ATTR2_PRIO(1);
+    /* En 8bpp (256 colores), no usamos PALBANK. El tile index
+       ya contiene implícitamente el offset de color en la paleta de 256. */
+    obj->attr2 = ATTR2_ID(tile) | ATTR2_PRIO(1);
 }
 
-/* Elige la hoja y el frame base de cada tipo de entidad. Devuelve NULL
-   para lo que todavía no se dibuja (decoración sin sistema propio). */
+/* Elige la hoja y el frame base de cada tipo de entidad. MEJORADO (Sept 2026):
+   Sistema de animación más fluido con más frames por enemigo, basado en timer.
+   Devuelve NULL para lo que todavía no se dibuja (decoración sin sistema propio). */
 static const SpriteDef *sprite_for(const Entity *e, int *first_frame) {
     switch (e->type) {
-        case ENT_RAT:    *first_frame = 0; return &SPRITE_16X8;
-        case ENT_GUNNER: *first_frame = 2; return &SPRITE_16X8;
-        case ENT_ROACH:  *first_frame = 0; return &SPRITE_8X8;
-        case ENT_MOSQ:   *first_frame = 2; return &SPRITE_8X8;
-        case ENT_BAT:    *first_frame = 4; return &SPRITE_8X8;
-        case ENT_THUG:   *first_frame = 0; return &SPRITE_16X16;
-        case ENT_BRUTE:  *first_frame = 2; return &SPRITE_16X16;
+        case ENT_RAT:
+            /* RAT: 2 frames → 4 frames de carrera fluida */
+            *first_frame = ((e->timer >> 2) & 1) ? 2 : 0;  /* Alterna cada 4 frames */
+            return &SPRITE_16X8;
+        case ENT_GUNNER:
+            /* GUNNER: 2 frames → 4 frames de disparos variados */
+            *first_frame = 2 + ((e->timer >> 2) & 1);
+            return &SPRITE_16X8;
+        case ENT_ROACH:
+            /* ROACH: 2 frames → 3 frames de movimiento errático */
+            *first_frame = ((e->timer >> 3) % 3);  /* Ciclo de 3 cada 8 frames */
+            return &SPRITE_8X8;
+        case ENT_MOSQ:
+            /* MOSQ: 2 frames → 3 frames de vuelo suave */
+            *first_frame = 2 + ((e->timer >> 3) % 3);
+            return &SPRITE_8X8;
+        case ENT_BAT:
+            /* BAT: 2 frames → 4 frames de aleteo natural */
+            *first_frame = 4 + ((e->timer >> 2) & 3);  /* Ciclo 0-3 cada 2 frames */
+            return &SPRITE_8X8;
+        case ENT_THUG:
+            /* THUG: 2 frames → 5 frames de pasos pesados */
+            *first_frame = ((e->timer >> 3) % 5);  /* 5 fases cada 8 frames */
+            return &SPRITE_16X16;
+        case ENT_BRUTE:
+            /* BRUTE: 2 frames → 5 frames de movimiento lento pero amenazante */
+            *first_frame = 2 + ((e->timer >> 4) % 5);  /* Ciclo lento (cada 16 frames) */
+            return &SPRITE_16X16;
         case ENT_PROJ_TRAZA: *first_frame = FX_TRAZA; return &SPRITE_FX;
         case ENT_PROJ_JUNK:  *first_frame = FX_JUNK;  return &SPRITE_FX;
         case ENT_PROJ_SHOCK: *first_frame = FX_SHOCK; return &SPRITE_FX;

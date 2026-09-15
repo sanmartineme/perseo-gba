@@ -1,9 +1,9 @@
 # Jefes: sprites de 32x24 rellenados a 32x32 (el tamano de OBJ mas
 # chico que los contiene). Meta-tile de 4x4 = 16 tiles por frame.
 -gt
--gB4
+-gB8
 -Mw4
 -Mh4
--pn16
+-pn256
 -ftc
 -fh

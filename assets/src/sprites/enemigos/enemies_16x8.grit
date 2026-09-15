@@ -1,9 +1,9 @@
 # Enemigos anchos y bajos (rata y tiradora): meta-tile de 2x1 = frames de 16x8.
 # grit lee este archivo automaticamente al convertir el .png.
 -gt
--gB4
+-gB8
 -Mw2
 -Mh1
--pn16
+-pn256
 -ftc
 -fh

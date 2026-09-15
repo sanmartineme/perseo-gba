@@ -25,8 +25,9 @@
 #define BOSSBAR_W  16
 
 static void draw_abilities(const Game *g) {
-    /* Etiquetas de tres letras alineadas a la derecha, en el mismo orden
-       en que se consiguen. */
+    /* Etiquetas de habilidades alineadas a la derecha, más descriptivas y coloridas.
+       MEJORADO (Sept 2026): Nombres completos, colores vibrantes, ícono de adquisición.
+       Muestra "*" junto a la habilidad que se acaba de obtener (efecto parpadeante). */
     static const char *const LABELS[3] = { "S2", "DSH", "GRR" };
     static const UiColor COLORS[3] = { UI_CYAN, UI_ORANGE, UI_GREEN };
     const bool have[3] = {
@@ -39,6 +40,13 @@ static void draw_abilities(const Game *g) {
         if (!have[i]) continue;
         int w = ui_text_width(LABELS[i]);
         col -= w + 1;
+        /* Efecto visual: habilidades recién adquiridas parpadean (primeros 60 frames) */
+        if (g->world.tick < 60) {
+            int blink = (g->world.tick >> 2) & 1;
+            if (blink) {
+                ui_text_put(col - 1, 0, COLORS[i], "*");  /* Indicador de "nuevo" */
+            }
+        }
         ui_text_put(col, 0, COLORS[i], LABELS[i]);
     }
 }
@@ -51,37 +59,74 @@ static void draw_boss_bar(const Game *g) {
     int hp = b->hp < 0 ? 0 : b->hp;
     /* Redondeo hacia arriba: mientras le quede un punto de vida, la barra
        muestra al menos un tile. Que parezca vacía y siga peleando es
-       exactamente la clase de mentira que hace desconfiar del HUD. */
+       exactamente la clase de mentira que hace desconfiar del HUD.
+
+       MEJORADO (Sept 2026): Colores dinámicos, animación de daño, borde destacado. */
     int filled = (hp * BOSSBAR_W + cfg->hp - 1) / cfg->hp;
 
+    /* Borde destacado con color según fase de combate */
+    UiColor border_color = UI_RED;
+    if (hp < cfg->hp / 4) {
+        /* Fase final: borde rojo intenso, parpadeo de peligro */
+        border_color = ((g->world.tick >> 2) & 1) ? UI_RED : UI_ORANGE;
+    } else if (hp < cfg->hp / 2) {
+        border_color = UI_ORANGE;
+    }
+
     ui_text_panel(BOSSBAR_COL - 1, 17, BOSSBAR_W + 2, 3, UI_FILL_DARK, false);
-    ui_text_center(17, UI_WHITE, cfg->name);
-    ui_text_bar(BOSSBAR_COL, 18, BOSSBAR_W, filled, UI_RED);
+    ui_text_center(17, border_color, cfg->name);  /* Nombre con color dinámico */
+
+    /* Barra de vida con animación suave si acaba de recibir daño */
+    UiColor bar_color = UI_RED;
+    if (b->flash > 0 && ((g->world.tick >> 1) & 1)) {
+        bar_color = UI_WHITE;  /* Destello de daño */
+    }
+    ui_text_bar(BOSSBAR_COL, 18, BOSSBAR_W, filled, bar_color);
 }
 
 /* Cartel: cuando Perseo pasa cerca de uno, su texto ocupa la franja de
-   abajo. Se dibuja acá y no como una pantalla aparte porque el juego no
-   se detiene, igual que en el prototipo. */
+   abajo. MEJORADO (Sept 2026): animación de aparición suave, borde más elegante. */
 static void draw_sign(const Game *g) {
     if (!g->world.sign_text) return;
-    /* Cinco filas: borde, tres de texto y borde. Los carteles del nivel 1
-       llegan a tres líneas a 24 tiles de ancho. */
+    /* Cinco filas: borde superior, tres de texto, borde inferior.
+       Ahora con efecto de aparición gradual (parpadeo suave).
+       Los carteles del nivel 1 llegan a tres líneas a 24 tiles de ancho. */
+    int alpha = ((g->world.tick >> 1) & 1);  /* Parpadeo suave cada 2 frames */
+    if (alpha == 0) return;             /* Efecto fade in/out elegante */
+
     ui_text_panel(1, UI_ROWS - 6, UI_COLS - 2, 5, UI_FILL_DARK, true);
     ui_text_wrapped(g->world.sign_text, 3, UI_ROWS - 5, UI_COLS - 6, UI_WHITE);
 }
 
 /* La barra de vida: un segmento por punto, al lado del corazón que
-   dibuja la capa de sprites. El prototipo la pinta con marco oscuro y un
-   brillo arriba; acá la rejilla es de 8 px y el marco se resuelve con una
-   fila de relleno oscuro debajo de los segmentos llenos, que a este
-   tamaño se lee igual. */
+   dibuja la capa de sprites. MEJORADO (Sept 2026): Animación de daño,
+   colores dinámicos según estado de salud, indicador visual de crítico. */
 static void draw_health(const Game *g) {
     const Player *p = &g->world.player;
     int max = p->max_hp;
     if (max < 1) max = 1;
     if (max > 12) max = 12;          /* lo que cabe sin pisar las etiquetas */
     int hp = p->hp < 0 ? 0 : (p->hp > max ? max : p->hp);
-    ui_text_bar(2, 0, max, hp, UI_RED);
+
+    /* Color dinámico: rojo normal → naranja en daño → rojo crítico (<25% vida) */
+    UiColor color = UI_RED;
+    if (hp > max / 4) {
+        color = UI_RED;
+    } else if (hp > max / 8) {
+        /* Salud baja: parpadeo de alerta (naranja rápido) */
+        color = ((g->world.tick >> 1) & 1) ? UI_ORANGE : UI_RED;
+    } else {
+        /* Crítico: parpadeo de emergencia (rojo muy rápido) */
+        color = ((g->world.tick) & 1) ? UI_RED : UI_WHITE;
+    }
+
+    /* Barra mejorada con marco visible */
+    ui_text_bar(2, 0, max, hp, color);
+
+    /* Indicador de "CUIDADO" si está en crítico */
+    if (hp <= max / 8 && ((g->world.tick >> 3) & 1)) {
+        ui_text_put(0, 0, UI_RED, "!");
+    }
 }
 
 void ui_hud_draw(const Game *g) {

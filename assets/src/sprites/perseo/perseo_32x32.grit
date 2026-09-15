@@ -1,9 +1,9 @@
 # Perseo quieto, para la vineta del juramento: su arte de 16x16 ampliado
 # al doble por el generador, asi que el frame es de 32x32.
 -gt
--gB4
+-gB8
 -Mw4
 -Mh4
--pn16
+-pn256
 -ftc
 -fh
