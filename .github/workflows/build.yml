@@ -15,18 +15,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Verificar DevKit
-      run: |
-        echo "DEVKITPRO: $DEVKITPRO"
-        echo "DEVKITARM: $DEVKITARM"
-        which arm-none-eabi-gcc
-        which grit
-
-    - name: Limpiar build anterior
-      run: make clean
-
     - name: Compilar Perseo GBA
-      run: make -j4
+      run: |
+        chmod +x build_docker.sh
+        ./build_docker.sh
 
     - name: Verificar ROM generada
       run: |
