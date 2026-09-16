@@ -38,7 +38,7 @@ jobs:
         file build/perseo.gba
 
     - name: Subir artefacto ROM
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: perseo-gba
         path: build/perseo.gba
