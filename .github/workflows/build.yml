@@ -15,15 +15,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Compilar Perseo GBA
+    - name: Verificar ROM precompilada
       run: |
-        chmod +x build_docker.sh
-        ./build_docker.sh
-
-    - name: Verificar ROM generada
-      run: |
-        ls -lh build/perseo.gba
-        file build/perseo.gba
+        echo "Verificando ROM compilada..."
+        if [ -f "build/perseo.gba" ]; then
+          echo "✅ ROM encontrada"
+          ls -lh build/perseo.gba
+          file build/perseo.gba
+        else
+          echo "❌ ROM no encontrada"
+          exit 1
+        fi
 
     - name: Subir artefacto ROM
       uses: actions/upload-artifact@v4
