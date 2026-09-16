@@ -21,7 +21,6 @@ jobs:
         if [ -f "build/perseo.gba" ]; then
           echo "✅ ROM encontrada"
           ls -lh build/perseo.gba
-          file build/perseo.gba
         else
           echo "❌ ROM no encontrada"
           exit 1
