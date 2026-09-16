@@ -1,7 +1,7 @@
 # Artefactos de compilación
 build/
+!build/perseo.gba
 *.elf
-*.gba
 *.map
 *.sav
 
